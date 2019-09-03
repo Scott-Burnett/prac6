@@ -40,9 +40,10 @@ IGNORE CHR(9) .. CHR(13)
 PRODUCTIONS
   Parva             = "void"
                     Ident
-                    (. table.AddRef(token.val, true, token.line); .)
+                    (. Table.AddRef(token.val, true, token.line); .)
                     "(" ")"
-                    Block .
+                    Block
+                    (. Table.PrintTable(); .) .
   Block             = "{"
                     { Statement }
                     "}" .
@@ -63,7 +64,7 @@ PRODUCTIONS
 
   ConstDeclarations = "const" OneConst { "," OneConst } ";" .
   OneConst          = Ident
-                    (. table.AddRef(token.val, true, token.line); .)
+                    (. Table.AddRef(token.val, true, token.line); .)
                     "="
                     Constant .
   Constant          =   number | charLit
@@ -79,7 +80,7 @@ PRODUCTIONS
    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
 
   OneVar            = Ident
-                    (. table.AddRef(token.val, true, token.line); .)
+                    (. Table.AddRef(token.val, true, token.line); .)
                     [ "=" Expression ] .
 
 /* One way of introducing the extended form of assignment statements might be to define
@@ -104,8 +105,7 @@ PRODUCTIONS
                         | "--"
                       ) ";" .
 
-  Designator        = Ident
-                    (. table.AddRef(token.val, true, token.line); .)
+  Designator        = Ident                    
                     [ "[" Expression "]" ] .
 
 /* The if-then-elsif-else construction is most easily described as follows. Although
@@ -136,10 +136,10 @@ PRODUCTIONS
 
 /* a C# inspired ForStatement might look like this */
 
-  ForStatement      = "for" "("
-                        [ [ BasicType ]
+  ForStatement      = "for" "(" (. bool temp = false; .) 
+                        [ [ BasicType (. temp = true; .) ]
                         Ident
-                        (. table.AddRef(token.val, true, token.line); .)
+                        (. Table.AddRef(token.val, temp, token.line); .)
                         "=" Expression ]
                         ";"
                         [ Condition ] ";"
@@ -147,18 +147,21 @@ PRODUCTIONS
                       ")" Statement .
 
   Step              =  Ident
-                    (. table.AddRef(token.val, false, token.line); .)
+                    (. Table.AddRef(token.val, false, token.line); .)
                     ( "++" | "--" | ( "=" | CompoundAssignOp ) Expression ) .
 
   ReadStatement     = "read" "(" ReadElement { "," ReadElement } ")" ";" .
-  ReadElement       = stringLit | Designator .
+  ReadElement       = stringLit 
+                      | Designator 
+                      (. Table.AddRef(token.val, true, token.line); .) .
   WriteStatement    = "write" "(" WriteElement { "," WriteElement } ")" ";" .
   WriteElement      = stringLit | Expression .
   Condition         = Expression .
   Expression        = AddExp [ RelOp AddExp ] .
   AddExp            = [ "+" | "-" ] Term { AddOp Term } .
   Term              = Factor { MulOp Factor } .
-  Factor            =   Designator | Constant
+  Factor            = Designator  (. Table.AddRef(token.val, false, token.line); .)
+                      | Constant
                       | "new" BasicType "[" Expression "]"
                       | "!" Factor | "(" Expression ")" .
   Type              = BasicType [ "[]" ] .
@@ -174,4 +177,3 @@ PRODUCTIONS
   Ident             = identifier .
 
 END Parva.
-

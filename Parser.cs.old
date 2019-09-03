@@ -83,7 +83,7 @@ public class Parser {
 	public static Token la;       // lookahead token
 	static int errDist = minErrDist;
 
-	Table table = new Table();
+	static Table table = new Table();
 
 
 
@@ -162,10 +162,11 @@ public class Parser {
 	static void Parva() {
 		Expect(void_Sym);
 		Ident();
-		table.AddRef(token.val, true, token.line);
+		Table.AddRef(token.val, true, token.line);
 		Expect(lparen_Sym);
 		Expect(rparen_Sym);
 		Block();
+		Table.PrintTable();
 	}
 
 	static void Ident() {
@@ -354,12 +355,14 @@ public class Parser {
 	static void ForStatement() {
 		Expect(for_Sym);
 		Expect(lparen_Sym);
+		bool temp = false;
 		if (la.kind == identifier_Sym || la.kind == int_Sym || la.kind == bool_Sym) {
 			if (la.kind == int_Sym || la.kind == bool_Sym) {
 				BasicType();
+				temp = true;
 			}
 			Ident();
-			table.AddRef(token.val, true, token.line);
+			Table.AddRef(token.val, temp, token.line);
 			Expect(equal_Sym);
 			Expression();
 		}
@@ -397,7 +400,7 @@ public class Parser {
 
 	static void OneConst() {
 		Ident();
-		table.AddRef(token.val, true, token.line);
+		Table.AddRef(token.val, true, token.line);
 		Expect(equal_Sym);
 		Constant();
 	}
@@ -425,7 +428,7 @@ public class Parser {
 
 	static void OneVar() {
 		Ident();
-		table.AddRef(token.val, true, token.line);
+		Table.AddRef(token.val, true, token.line);
 		if (la.kind == equal_Sym) {
 			Get();
 			Expression();
@@ -476,7 +479,6 @@ public class Parser {
 
 	static void Designator() {
 		Ident();
-		table.AddRef(token.val, true, token.line);
 		if (la.kind == lbrack_Sym) {
 			Get();
 			Expression();
@@ -498,7 +500,7 @@ public class Parser {
 
 	static void Step() {
 		Ident();
-		table.AddRef(token.val, false, token.line);
+		Table.AddRef(token.val, false, token.line);
 		if (la.kind == plusplus_Sym) {
 			Get();
 		} else if (la.kind == minusminus_Sym) {
@@ -518,6 +520,7 @@ public class Parser {
 			Get();
 		} else if (la.kind == identifier_Sym) {
 			Designator();
+			Table.AddRef(token.val, true, token.line);
 		} else SynErr(65);
 	}
 
@@ -594,6 +597,7 @@ public class Parser {
 
 	static void Factor() {
 		if (la.kind == identifier_Sym) {
+			Table.AddRef(token.val, false, token.line);
 			Designator();
 		} else if (StartOf(7)) {
 			Constant();

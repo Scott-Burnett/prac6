@@ -2,6 +2,7 @@
 // P.D. Terry, Rhodes University, 2016
 
 using Library;
+using System;
 using System.Collections.Generic;
 
 namespace Parva {
@@ -49,10 +50,7 @@ namespace Parva {
             entryList.Add(newEntry);
         }
         else {
-            if (declared)
-                entryList[pos].refs[0] = lineRef * -1;
-            else
-                entryList[pos].refs.Add(lineRef);
+            entryList[pos].refs.Add(lineRef);
         }
     } // Table.AddRef
 

@@ -43,72 +43,72 @@
   40 PRODUCTIONS
   41   Parva             = "void"
   42                     Ident
-  43                     (. table.AddRef(token.val, true, token.line); .)
+  43                     (. Table.AddRef(token.val, true, token.line); .)
   44                     "(" ")"
-  45                     Block .
-  46   Block             = "{"
-  47                     { Statement }
-  48                     "}" .
-  49 
-  50 /* The options in Statement are easily extended to handle the new forms */
-  51 
-  52   Statement         =    Block
-  53                        | ConstDeclarations | VarDeclarations
-  54                        | Assignments
-  55                        | IfStatement       | WhileStatement
-  56                        | ReturnStatement   | HaltStatement
-  57                        | ReadStatement     | WriteStatement
-  58                        | ForStatement      | BreakStatement
-  59                        | ContinueStatement | DoWhileStatement
-  60                        | ";" .
-  61 
-  62 /* Declarations remain the same as before */
-  63 
-  64   ConstDeclarations = "const" OneConst { "," OneConst } ";" .
-  65   OneConst          = Ident
-  66                     (. table.AddRef(token.val, true, token.line); .)
-  67                     "="
-  68                     Constant .
-  69   Constant          =   number | charLit
-  70                       | "true" | "false" | "null" .
-  71   VarDeclarations   = Type OneVar { "," OneVar } ";" .
-  72 
-  73 /* We can introduce the extra form of asssignment operators as tokens as follows.  Note
-  74    theta we do not want to use, say "+" "=" because they cannot contain spaces. */
-  75 
-  76   CompoundAssignOp  = "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" .
-  77 
-  78 /* Don't be tempted to use the CompoundAssignOp in the declaration of OneVar or OneConst.
-  79    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
-  80 
-  81   OneVar            = Ident
-  82                     (. table.AddRef(token.val, true, token.line); .)
-  83                     [ "=" Expression ] .
-  84 
-  85 /* One way of introducing the extended form of assignment statements might be to define
-  86 
-  87   Assignments = Designator { "," Designator } ( "=" | CompoundAssignOp )
-  88                 Expression { "," Expression } .
-  89 
-  90 */
-  91 
-  92 /* However, we might wish to limit the form with multiple Designators and Expressions to
-  93    use only the simple = operator, for ease of code generation as we may see later.
-  94 
-  95    If this is the case, to keep thing LL(1) compliant, the extra forms of assignment
-  96    statement familiar from Python, and the compound assignments familiar from C and C# are
-  97    best handled as below.  THis affords a nice example of factoring a grammar to avoid
-  98    LL(1) conflicts by delaying the awkward component for a while */
-  99 
- 100   Assignments       = Designator
- 101                       (   CompoundAssignOp Expression
- 102                         | { "," Designator } "=" Expression { "," Expression }
- 103                         | "++"
- 104                         | "--"
- 105                       ) ";" .
- 106 
- 107   Designator        = Ident
- 108                     (. table.AddRef(token.val, true, token.line); .)
+  45                     Block
+  46                     (. Table.PrintTable(); .) .
+  47   Block             = "{"
+  48                     { Statement }
+  49                     "}" .
+  50 
+  51 /* The options in Statement are easily extended to handle the new forms */
+  52 
+  53   Statement         =    Block
+  54                        | ConstDeclarations | VarDeclarations
+  55                        | Assignments
+  56                        | IfStatement       | WhileStatement
+  57                        | ReturnStatement   | HaltStatement
+  58                        | ReadStatement     | WriteStatement
+  59                        | ForStatement      | BreakStatement
+  60                        | ContinueStatement | DoWhileStatement
+  61                        | ";" .
+  62 
+  63 /* Declarations remain the same as before */
+  64 
+  65   ConstDeclarations = "const" OneConst { "," OneConst } ";" .
+  66   OneConst          = Ident
+  67                     (. Table.AddRef(token.val, true, token.line); .)
+  68                     "="
+  69                     Constant .
+  70   Constant          =   number | charLit
+  71                       | "true" | "false" | "null" .
+  72   VarDeclarations   = Type OneVar { "," OneVar } ";" .
+  73 
+  74 /* We can introduce the extra form of asssignment operators as tokens as follows.  Note
+  75    theta we do not want to use, say "+" "=" because they cannot contain spaces. */
+  76 
+  77   CompoundAssignOp  = "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" .
+  78 
+  79 /* Don't be tempted to use the CompoundAssignOp in the declaration of OneVar or OneConst.
+  80    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
+  81 
+  82   OneVar            = Ident
+  83                     (. Table.AddRef(token.val, true, token.line); .)
+  84                     [ "=" Expression ] .
+  85 
+  86 /* One way of introducing the extended form of assignment statements might be to define
+  87 
+  88   Assignments = Designator { "," Designator } ( "=" | CompoundAssignOp )
+  89                 Expression { "," Expression } .
+  90 
+  91 */
+  92 
+  93 /* However, we might wish to limit the form with multiple Designators and Expressions to
+  94    use only the simple = operator, for ease of code generation as we may see later.
+  95 
+  96    If this is the case, to keep thing LL(1) compliant, the extra forms of assignment
+  97    statement familiar from Python, and the compound assignments familiar from C and C# are
+  98    best handled as below.  THis affords a nice example of factoring a grammar to avoid
+  99    LL(1) conflicts by delaying the awkward component for a while */
+ 100 
+ 101   Assignments       = Designator
+ 102                       (   CompoundAssignOp Expression
+ 103                         | { "," Designator } "=" Expression { "," Expression }
+ 104                         | "++"
+ 105                         | "--"
+ 106                       ) ";" .
+ 107 
+ 108   Designator        = Ident                    
  109                     [ "[" Expression "]" ] .
  110 
  111 /* The if-then-elsif-else construction is most easily described as follows. Although
@@ -139,10 +139,10 @@
  136 
  137 /* a C# inspired ForStatement might look like this */
  138 
- 139   ForStatement      = "for" "("
- 140                         [ [ BasicType ]
+ 139   ForStatement      = "for" "(" (. bool temp = false; .) 
+ 140                         [ [ BasicType (. temp = true; .) ]
  141                         Ident
- 142                         (. table.AddRef(token.val, true, token.line); .)
+ 142                         (. Table.AddRef(token.val, temp, token.line); .)
  143                         "=" Expression ]
  144                         ";"
  145                         [ Condition ] ";"
@@ -150,34 +150,36 @@
  147                       ")" Statement .
  148 
  149   Step              =  Ident
- 150                     (. table.AddRef(token.val, false, token.line); .)
+ 150                     (. Table.AddRef(token.val, false, token.line); .)
  151                     ( "++" | "--" | ( "=" | CompoundAssignOp ) Expression ) .
  152 
  153   ReadStatement     = "read" "(" ReadElement { "," ReadElement } ")" ";" .
- 154   ReadElement       = stringLit | Designator .
- 155   WriteStatement    = "write" "(" WriteElement { "," WriteElement } ")" ";" .
- 156   WriteElement      = stringLit | Expression .
- 157   Condition         = Expression .
- 158   Expression        = AddExp [ RelOp AddExp ] .
- 159   AddExp            = [ "+" | "-" ] Term { AddOp Term } .
- 160   Term              = Factor { MulOp Factor } .
- 161   Factor            =   Designator | Constant
- 162                       | "new" BasicType "[" Expression "]"
- 163                       | "!" Factor | "(" Expression ")" .
- 164   Type              = BasicType [ "[]" ] .
- 165   BasicType         = "int" | "bool" .
- 166   AddOp             = "+" | "-" | "||" .
- 167 
- 168 /* The % operator is easily added to the set of MulOps */
- 169 
- 170   MulOp             = "*" | "/" | "&&" | "%" .
- 171 
- 172   RelOp             = "==" | "!=" | "<" | "<=" | ">" | ">=" .
- 173 
- 174   Ident             = identifier .
- 175 
- 176 END Parva.
- 177 
+ 154   ReadElement       = stringLit 
+ 155                       | Designator 
+ 156                       (. Table.AddRef(token.val, true, token.line); .) .
+ 157   WriteStatement    = "write" "(" WriteElement { "," WriteElement } ")" ";" .
+ 158   WriteElement      = stringLit | Expression .
+ 159   Condition         = Expression .
+ 160   Expression        = AddExp [ RelOp AddExp ] .
+ 161   AddExp            = [ "+" | "-" ] Term { AddOp Term } .
+ 162   Term              = Factor { MulOp Factor } .
+ 163   Factor            = Designator  (. Table.AddRef(token.val, false, token.line); .)
+ 164                       | Constant
+ 165                       | "new" BasicType "[" Expression "]"
+ 166                       | "!" Factor | "(" Expression ")" .
+ 167   Type              = BasicType [ "[]" ] .
+ 168   BasicType         = "int" | "bool" .
+ 169   AddOp             = "+" | "-" | "||" .
+ 170 
+ 171 /* The % operator is easily added to the set of MulOps */
+ 172 
+ 173   MulOp             = "*" | "/" | "&&" | "%" .
+ 174 
+ 175   RelOp             = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+ 176 
+ 177   Ident             = identifier .
+ 178 
+ 179 END Parva.
 
 0 errors detected
 2 warnings detected
