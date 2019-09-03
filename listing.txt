@@ -1,62 +1,152 @@
 
    1 using Library;
    2 
-   3 COMPILER TokenTests $CN
-   4 /* Test scanner construction and token definitions - C# version
-   5    The generated program will read a file of words, numbers, strings etc
-   6    and report on what characters have been scanned to give a token,
-   7    and what that token is (as a magic number).  Useful for experimenting
-   8    when faced with the problem of defining awkward tokens!
-   9 
-  10    P.D. Terry, Rhodes University, 2016 */
-  11 
-  12 /* Some code to be added to the parser class */
-  13 
-  14   static void Display(Token token) {
-  15   // Simply reflect the fields of token to the standard output
-  16     IO.Write("Line ");
-  17     IO.Write(token.line, 4);
-  18     IO.Write(" Column");
-  19     IO.Write(token.col, 4);
-  20     IO.Write(":  Kind");
-  21     IO.Write(token.kind, 3);
-  22     IO.WriteLine("  Val |" + token.val.Trim() + "|");
-  23   } // Display
-  24 
-  25 CHARACTERS  /* You may like to introduce others */
-  26 
-  27   sp         = CHR(32) .
-  28   backslash  = CHR(92) .
-  29   control    = CHR(0) .. CHR(31) .
-  30   letter     = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" .
-  31   digit      = "0123456789" .
-  32   nonZero    = "123456789" .
-  33   stringCh   = ANY - '"' - control - backslash .
-  34   charCh     = ANY - "'" - control - backslash .
-  35   printable  = ANY - control .
-  36 
-  37 TOKENS      /* You may like to introduce others */
-  38 
-  39   ident      = letter { ( "_" ( letter | digit ) ) | letter | digit } . 
-  40   integer    = ( nonZero { digit } | "0" ) | ( nonZero { digit } | "0" ) CONTEXT (".") .
-  41   double     = ( nonZero { digit } | "0" ) "." digit { digit } ["E" ["+"|"-"] digit { digit }] .
-  42   string     = '"' { stringCh | backslash printable } '"' .
-  43   char       = "'" ( charCh   | backslash printable ) "'" .
-  44 
-  45 IGNORE control
-  46 
-  47 PRODUCTIONS
-  48 
-  49    TokenTests
-  50    = { (    ANY
-  51          |  "."
-  52          |  ".."
-  53          |  "ANY"
-  54        )                     (. Display(token); .)
-  55      } EOF                   (. Display(token); .)
-  56      .
-  57 
-  58 END TokenTests.
-  59 
+   3 COMPILER Calc $NC
+   4 //  Put your names and a description here
+   5 
+   6 static int ToInt(bool b) {
+   7 // return 0 or 1 according as b is false or true
+   8   return b ? 1 : 0;
+   9 } // ToInt
+  10 
+  11 static bool ToBool(int i) {
+  12 // return false or true according as i is 0 or 1
+  13   return i == 0 ? false : true;
+  14 } // ToBool
+  15 
+  16 CHARACTERS
+  17   digit      = "0123456789" .
+  18   letter     = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" .
+  19 
+  20 TOKENS
+  21   number     = digit { digit } .
+  22   identifier = letter { letter | digit } .
+  23 
+  24 IGNORE CHR(0) .. CHR(31)
+  25 
+  26 PRODUCTIONS
+  27   Calc
+  28   =
+  29   { Print
+  30   | Assignment 
+  31   } "quit"
+  32   .
+  33 
+  34   Assignment
+  35   =
+  36   Variable
+  37   "="
+  38   Expression
+  39   SYNC ";"
+  40   .
+  41 
+  42   Print
+  43   =
+  44   "print"
+  45   Expression
+  46   { WEAK ","
+  47     Expression
+  48   }
+  49   SYNC ";"
+  50   .
+  51 
+  52   Expression
+  53   =
+  54   AndExp
+  55   { "||"
+  56     AndExp
+  57   } .
+  58 
+  59   AndExp
+  60   =
+  61   EqlExp
+  62   { "&&"
+  63     EqlExp
+  64   } .
+  65 
+  66   EqlExp
+  67   =
+  68   RelExp
+  69   { EqlOp
+  70     RelExp
+  71   } .
+  72 
+  73   RelExp
+  74   =
+  75   AddExp
+  76   [ RelOp
+  77     AddExp
+  78   ] .
+  79 
+  80   AddExp <value>
+****                ^ attribute mismatch between declaration and use of this symbol
+  81   =
+  82   MultExp<value1> (. value2 := 0; .)
+  83   { AddOp
+  84     MultExp<value2> (. value1 +=  value2; .)
+  85   } (. value := value1 + value2; .).
+  86 
+  87   MultExp <value>
+  88   =
+  89   UnaryExp
+  90   { MulOp
+  91     UnaryExp
+  92   } .
+  93 
+  94   UnaryExp
+  95   =   Factor
+  96     | "+" UnaryExp
+  97     | "-" UnaryExp
+  98     | "!" UnaryExp
+  99   .
+ 100 
+ 101   Factor
+ 102   =
+ 103       Variable
+ 104     | Number
+ 105     | "true"
+ 106     | "false"
+ 107     | "(" Expression
+ 108       ")"
+ 109   .
+ 110 
+ 111   Variable
+ 112   =
+ 113   identifier
+ 114   .
+ 115 
+ 116   Number
+ 117   =
+ 118   number
+ 119   .
+ 120 
+ 121   MulOp
+ 122   =
+ 123       "*"
+ 124     | "/"
+ 125     | "%"
+ 126     .
+ 127 
+ 128   AddOp
+ 129   =
+ 130       "+"
+ 131     | "-"
+ 132   .
+ 133 
+ 134   RelOp
+ 135   =
+ 136       "<"
+ 137     | "<="
+ 138     | ">"
+ 139     | ">="
+ 140   .
+ 141 
+ 142   EqlOp
+ 143   =
+ 144       "=="
+ 145     | "!="
+ 146   .
+ 147 
+ 148 END Calc.
 
-0 errors detected
+1 errors detected

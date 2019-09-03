@@ -27,7 +27,7 @@ PRODUCTIONS
   Calc
   =
   { Print
-  | Assignment
+  | Assignment 
   } "quit"
   .
 
@@ -82,7 +82,7 @@ PRODUCTIONS
   MultExp
   { AddOp
     MultExp
-  } .
+  } 
 
   MultExp
   =

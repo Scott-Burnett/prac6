@@ -81,8 +81,8 @@ public class Scanner {
 	static short[] start = {
 	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 	  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	  0,  0,  8,  0,  0,  0,  0, 11,  0,  0,  0,  0,  0,  0, 18,  0,
-	 16, 15, 15, 15, 15, 15, 15, 15, 15, 15,  0,  0,  0,  0,  0,  0,
+	  0,  0,  7,  0,  0,  0,  0, 10,  0,  0,  0,  0,  0,  0, 18,  0,
+	 15, 14, 14, 14, 14, 14, 14, 14, 14, 14,  0,  0,  0,  0,  0,  0,
 	  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
 	  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  0,  0,  0,
 	  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -196,55 +196,59 @@ public class Scanner {
 				  || ch >= 'a' && ch <= 'z')) { buf.Append(ch); NextCh(); goto case 1; }
 				else { t.kind = noSym; goto done; }
 			case 3:
-				if ((ch >= '0' && ch <= '9')) { apx++; buf.Append(ch); NextCh(); goto case 4; }
-				else { t.kind = noSym; goto done; }
-			case 4:
-				if ((ch >= '0' && ch <= '9')) { apx++; buf.Append(ch); NextCh(); goto case 4; }
-				else if (ch == 'E') { apx++; buf.Append(ch); NextCh(); goto case 5; }
+				if ((ch >= '0' && ch <= '9')) { buf.Append(ch); NextCh(); goto case 3; }
+				else if (ch == 'E') { buf.Append(ch); NextCh(); goto case 4; }
 				else { t.kind = double_Sym; goto done; }
-			case 5:
-				if ((ch >= '0' && ch <= '9')) { apx++; buf.Append(ch); NextCh(); goto case 7; }
+			case 4:
+				if ((ch >= '0' && ch <= '9')) { buf.Append(ch); NextCh(); goto case 6; }
 				else if ((ch == '+'
-				  || ch == '-')) { apx++; buf.Append(ch); NextCh(); goto case 6; }
+				  || ch == '-')) { buf.Append(ch); NextCh(); goto case 5; }
+				else { t.kind = noSym; goto done; }
+			case 5:
+				if ((ch >= '0' && ch <= '9')) { buf.Append(ch); NextCh(); goto case 6; }
 				else { t.kind = noSym; goto done; }
 			case 6:
-				if ((ch >= '0' && ch <= '9')) { apx++; buf.Append(ch); NextCh(); goto case 7; }
-				else { t.kind = noSym; goto done; }
-			case 7:
-				if ((ch >= '0' && ch <= '9')) { apx++; buf.Append(ch); NextCh(); goto case 7; }
+				if ((ch >= '0' && ch <= '9')) { buf.Append(ch); NextCh(); goto case 6; }
 				else { t.kind = double_Sym; goto done; }
-			case 8:
+			case 7:
 				if ((ch >= ' ' && ch <= '!'
 				  || ch >= '#' && ch <= '['
-				  || ch >= ']' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 8; }
-				else if ((ch == 92)) { buf.Append(ch); NextCh(); goto case 9; }
-				else if (ch == '"') { buf.Append(ch); NextCh(); goto case 10; }
+				  || ch >= ']' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 7; }
+				else if ((ch == 92)) { buf.Append(ch); NextCh(); goto case 8; }
+				else if (ch == '"') { buf.Append(ch); NextCh(); goto case 9; }
+				else { t.kind = noSym; goto done; }
+			case 8:
+				if ((ch >= ' ' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 7; }
 				else { t.kind = noSym; goto done; }
 			case 9:
-				if ((ch >= ' ' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 8; }
-				else { t.kind = noSym; goto done; }
-			case 10:
 				{ t.kind = string_Sym; goto done; }
-			case 11:
+			case 10:
 				if ((ch >= ' ' && ch <= '&'
 				  || ch >= '(' && ch <= '['
-				  || ch >= ']' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 12; }
-				else if ((ch == 92)) { buf.Append(ch); NextCh(); goto case 13; }
+				  || ch >= ']' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 11; }
+				else if ((ch == 92)) { buf.Append(ch); NextCh(); goto case 12; }
+				else { t.kind = noSym; goto done; }
+			case 11:
+				if (ch == 39) { buf.Append(ch); NextCh(); goto case 13; }
 				else { t.kind = noSym; goto done; }
 			case 12:
-				if (ch == 39) { buf.Append(ch); NextCh(); goto case 14; }
+				if ((ch >= ' ' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 11; }
 				else { t.kind = noSym; goto done; }
 			case 13:
-				if ((ch >= ' ' && ch <= 255)) { buf.Append(ch); NextCh(); goto case 12; }
-				else { t.kind = noSym; goto done; }
-			case 14:
 				{ t.kind = char_Sym; goto done; }
-			case 15:
-				if ((ch >= '0' && ch <= '9')) { buf.Append(ch); NextCh(); goto case 15; }
-				else if (ch == '.') { apx++; buf.Append(ch); NextCh(); goto case 3; }
+			case 14:
+				if ((ch >= '0' && ch <= '9')) { buf.Append(ch); NextCh(); goto case 14; }
+				else if (ch == '.') { apx++; buf.Append(ch); NextCh(); goto case 16; }
 				else { t.kind = integer_Sym; goto done; }
-			case 16:
+			case 15:
 				{ t.kind = integer_Sym; goto done; }
+			case 16:
+				if ((ch >= '0' && ch <= '9')) { apx = 0; buf.Append(ch); NextCh(); goto case 3; }
+				else {
+					buf.Length = buf.Length - apx;
+					pos = pos - apx - 1; line = t.line;
+					Buffer.Pos = pos+1; NextCh();
+					 t.kind = integer_Sym; goto done; }
 			case 17:
 				{ t.kind = pointpoint_Sym; goto done; }
 			case 18:
