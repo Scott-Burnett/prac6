@@ -1,7 +1,10 @@
+/*using Table.cs;*/
 COMPILER Parva $CN
 /* Parva level 1 grammar  - Coco/R for C# (EBNF)
    P.D. Terry, Rhodes University, 2016
    Extended Grammar similar to that done in Prac 3  */
+
+    static Table table = new Table();
    
 CHARACTERS
   lf         = CHR(10) .
@@ -35,8 +38,14 @@ COMMENTS FROM "/*" TO "*/"
 IGNORE CHR(9) .. CHR(13)
 
 PRODUCTIONS
-  Parva             = "void" Ident "(" ")" Block .
-  Block             = "{" { Statement } "}" .
+  Parva             = "void"
+                    Ident
+                    (. table.AddRef(token.val, true, token.line); .)
+                    "(" ")"
+                    Block .
+  Block             = "{"
+                    { Statement }
+                    "}" .
 
 /* The options in Statement are easily extended to handle the new forms */
 
@@ -53,7 +62,10 @@ PRODUCTIONS
 /* Declarations remain the same as before */
 
   ConstDeclarations = "const" OneConst { "," OneConst } ";" .
-  OneConst          = Ident "=" Constant .
+  OneConst          = Ident
+                    (. table.AddRef(token.val, true, token.line); .)
+                    "="
+                    Constant .
   Constant          =   number | charLit
                       | "true" | "false" | "null" .
   VarDeclarations   = Type OneVar { "," OneVar } ";" .
@@ -66,7 +78,9 @@ PRODUCTIONS
 /* Don't be tempted to use the CompoundAssignOp in the declaration of OneVar or OneConst.
    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
 
-  OneVar            = Ident [ "=" Expression ] .
+  OneVar            = Ident
+                    (. table.AddRef(token.val, true, token.line); .)
+                    [ "=" Expression ] .
 
 /* One way of introducing the extended form of assignment statements might be to define
 
@@ -90,7 +104,9 @@ PRODUCTIONS
                         | "--"
                       ) ";" .
 
-  Designator        = Ident [ "[" Expression "]" ] .
+  Designator        = Ident
+                    (. table.AddRef(token.val, true, token.line); .)
+                    [ "[" Expression "]" ] .
 
 /* The if-then-elsif-else construction is most easily described as follows. Although
   this is not LL(1), this works admirably - it is simply the well-known dangling
@@ -121,12 +137,18 @@ PRODUCTIONS
 /* a C# inspired ForStatement might look like this */
 
   ForStatement      = "for" "("
-                        [ [ BasicType ] Ident "=" Expression ] ";"
+                        [ [ BasicType ]
+                        Ident
+                        (. table.AddRef(token.val, true, token.line); .)
+                        "=" Expression ]
+                        ";"
                         [ Condition ] ";"
                         [ Step ]
                       ")" Statement .
 
-  Step              =  Ident ( "++" | "--" | ( "=" | CompoundAssignOp ) Expression ) .
+  Step              =  Ident
+                    (. table.AddRef(token.val, false, token.line); .)
+                    ( "++" | "--" | ( "=" | CompoundAssignOp ) Expression ) .
 
   ReadStatement     = "read" "(" ReadElement { "," ReadElement } ")" ";" .
   ReadElement       = stringLit | Designator .

@@ -13,7 +13,7 @@ namespace Parva {
       this.name = name;
       this.refs = new List<int>(){1};
     }
-    public string ToString(){
+    public override string ToString(){
         string s = name + ":    ";
         foreach (int i in refs)
             s += i + ",  ";
@@ -26,7 +26,7 @@ namespace Parva {
 
     public static void ClearTable() {
     // Clears cross-reference table
-        entryList.clear();
+        entryList.Clear();
     } // Table.ClearTable
 
     public static void AddRef(string name, bool declared, int lineRef) {

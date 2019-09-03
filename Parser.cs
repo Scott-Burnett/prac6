@@ -83,8 +83,7 @@ public class Parser {
 	public static Token la;       // lookahead token
 	static int errDist = minErrDist;
 
-	(. int currLine = 0; .)
-
+	static Table table = new Table();
 
 
 
@@ -163,6 +162,7 @@ public class Parser {
 	static void Parva() {
 		Expect(void_Sym);
 		Ident();
+		table.AddRef(token.val, true, token.line);
 		Expect(lparen_Sym);
 		Expect(rparen_Sym);
 		Block();
@@ -359,6 +359,7 @@ public class Parser {
 				BasicType();
 			}
 			Ident();
+			table.AddRef(token.val, true, token.line);
 			Expect(equal_Sym);
 			Expression();
 		}
@@ -396,6 +397,7 @@ public class Parser {
 
 	static void OneConst() {
 		Ident();
+		table.AddRef(token.val, true, token.line);
 		Expect(equal_Sym);
 		Constant();
 	}
@@ -423,6 +425,7 @@ public class Parser {
 
 	static void OneVar() {
 		Ident();
+		table.AddRef(token.val, true, token.line);
 		if (la.kind == equal_Sym) {
 			Get();
 			Expression();
@@ -473,6 +476,7 @@ public class Parser {
 
 	static void Designator() {
 		Ident();
+		table.AddRef(token.val, true, token.line);
 		if (la.kind == lbrack_Sym) {
 			Get();
 			Expression();
@@ -494,6 +498,7 @@ public class Parser {
 
 	static void Step() {
 		Ident();
+		table.AddRef(token.val, false, token.line);
 		if (la.kind == plusplus_Sym) {
 			Get();
 		} else if (la.kind == minusminus_Sym) {

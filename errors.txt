@@ -4,5 +4,16 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 This compiler is provided as part of the Microsoft (R) .NET Framework, but only supports language versions up to C# 5, which is no longer the latest version. For compilers that support newer versions of the C# programming language, see http://go.microsoft.com/fwlink/?LinkID=533240
 
-Parser.cs(86,2): error CS1519: Invalid token '(' in class, struct, or interface member declaration
-Parser.cs(86,23): error CS1519: Invalid token '.' in class, struct, or interface member declaration
+Parser.cs(165,3): error CS0176: Member 'Parva.Table.AddRef(string, bool, int)' cannot be accessed with an instance reference; qualify it with a type name instead
+Parva\Table.cs(32,24): (Location of symbol related to previous error)
+Parser.cs(362,4): error CS0176: Member 'Parva.Table.AddRef(string, bool, int)' cannot be accessed with an instance reference; qualify it with a type name instead
+Parva\Table.cs(32,24): (Location of symbol related to previous error)
+Parser.cs(400,3): error CS0176: Member 'Parva.Table.AddRef(string, bool, int)' cannot be accessed with an instance reference; qualify it with a type name instead
+Parva\Table.cs(32,24): (Location of symbol related to previous error)
+Parser.cs(428,3): error CS0176: Member 'Parva.Table.AddRef(string, bool, int)' cannot be accessed with an instance reference; qualify it with a type name instead
+Parva\Table.cs(32,24): (Location of symbol related to previous error)
+Parser.cs(479,3): error CS0176: Member 'Parva.Table.AddRef(string, bool, int)' cannot be accessed with an instance reference; qualify it with a type name instead
+Parva\Table.cs(32,24): (Location of symbol related to previous error)
+Parser.cs(501,3): error CS0176: Member 'Parva.Table.AddRef(string, bool, int)' cannot be accessed with an instance reference; qualify it with a type name instead
+Parva\Table.cs(32,24): (Location of symbol related to previous error)
+Parva\Table.cs(62,13): error CS0103: The name 'Console' does not exist in the current context
