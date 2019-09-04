@@ -597,8 +597,8 @@ public class Parser {
 
 	static void Factor() {
 		if (la.kind == identifier_Sym) {
-			Table.AddRef(token.val, false, token.line);
 			Designator();
+			Table.AddRef(token.val, false, token.line);
 		} else if (StartOf(7)) {
 			Constant();
 		} else if (la.kind == new_Sym) {

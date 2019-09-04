@@ -35,21 +35,21 @@ PRODUCTIONS
   =
   Variable
   "="
-  Expression
+  Expression < value >
   SYNC ";"
   .
 
   Print
   =
   "print"
-  Expression
+  Expression < value >
   { WEAK ","
-    Expression
+    Expression < Expralue >
   }
   SYNC ";"
   .
 
-  Expression
+  Expression < value >
   =
   AndExp
   { "||"
@@ -82,7 +82,7 @@ PRODUCTIONS
   MultExp
   { AddOp
     MultExp
-  } 
+  } .
 
   MultExp
   =
@@ -104,7 +104,7 @@ PRODUCTIONS
     | Number
     | "true"
     | "false"
-    | "(" Expression
+    | "(" Expression < value >
       ")"
   .
 
