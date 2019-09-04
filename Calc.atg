@@ -1,7 +1,32 @@
 using Library;
+using System.Collections.Generic;
+
+class Variable {
+    public string _name;
+    public int _value;
+    public Variable (string name, int value) {
+        _name = name;
+        _value = value;
+    }
+}
+
+class Table {
+    public List<Variable> variables = new List<Variable>;
+    public void set (string name, int value) {
+        int i = 0, pos = -1;
+        foreach (Variable v in variables) {
+            if (name == v._name) {
+                pos = i;
+                break;
+            }
+            i++;
+        }
+        
+    }
+}
 
 COMPILER Calc $NC
-//  Put your names and a description here
+//  Scott Burnett && Redy van Dyk
 
 static int ToInt(bool b) {
 // return 0 or 1 according as b is false or true
@@ -49,71 +74,75 @@ PRODUCTIONS
   SYNC ";"
   .
 
+<<<<<<< HEAD
   Expression < value >
+=======
+  Expression < out int value >
+>>>>>>> 0e26c8674f6db625ea5e493cd8121f8496024db2
   =
-  AndExp
+  AndExp < value >
   { "||"
     AndExp
   } .
 
-  AndExp
+  AndExp < out int value>
   =
   EqlExp
   { "&&"
     EqlExp
   } .
 
-  EqlExp
+  EqlExp < out int value >
   =
   RelExp
   { EqlOp
     RelExp
   } .
 
-  RelExp
+  RelExp <out int value >
   =
   AddExp
   [ RelOp
     AddExp
   ] .
 
-  AddExp
+  AddExp < out int value >
   =
   MultExp
   { AddOp
     MultExp
   } .
 
-  MultExp
+  MultExp < out int value >
   =
-  UnaryExp
+  UnaryExp < value >
   { MulOp
     UnaryExp
   } .
 
-  UnaryExp
-  =   Factor
+  UnaryExp < out int value >
+  =   Factor < value >
     | "+" UnaryExp
     | "-" UnaryExp
     | "!" UnaryExp
   .
 
-  Factor
+  Factor < out int value >
   =
-      Variable
-    | Number
-    | "true"
-    | "false"
+    Variable (. value = token.val; .)
+    | Number (. value = token.val; .) 
+    | "true" (. value = 1; .)
+    | "false" (. value = 0; .)
     | "(" Expression < value >
       ")"
   .
 
-  Variable
+  Variable < out int value >
   =
   identifier
   .
 
-  Number
+  Number < out int value >
   =
   number
   .
