@@ -74,11 +74,7 @@ PRODUCTIONS
   SYNC ";"
   .
 
-<<<<<<< HEAD
-  Expression < value >
-=======
   Expression < out int value >
->>>>>>> 0e26c8674f6db625ea5e493cd8121f8496024db2
   =
   AndExp < value >
   { "||"
