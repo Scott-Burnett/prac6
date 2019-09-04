@@ -1,4 +1,5 @@
 using Library;
+using System.Collections.Generic;
 
 
 
@@ -52,7 +53,40 @@ public class Parser {
 	public static Token la;       // lookahead token
 	static int errDist = minErrDist;
 
-	static int ToInt(bool b) {
+	class Entry {
+    public string _name;
+    public int _value;
+    public Entry (string name, int value) {
+        _name = name;
+        _value = value;
+    }
+}
+
+class Table {
+    public List<Entry> variables = new List<Entry>();
+    public int indexOf(string name) {
+        int i = 0;
+        foreach (Entry v in variables) {
+            if (name == v._name) return i;
+            i++;
+        }
+        return -1;
+    }
+    public int valueOf(string name) {
+        int pos = indexOf(name);
+        if (pos == -1) return 0;
+        else return variables[pos]._value;
+    }
+    public void set (string name, int value) {
+        int pos = indexOf(name);
+        if (pos == -1)
+            variables.Add(new Entry(name, value));
+        else
+            variables[pos]._value = value;
+    }
+}
+
+static int ToInt(bool b) {
 // return 0 or 1 according as b is false or true
   return b ? 1 : 0;
 } // ToInt
@@ -61,6 +95,8 @@ static bool ToBool(int i) {
 // return false or true according as i is 0 or 1
   return i == 0 ? false : true;
 } // ToBool
+
+static Table table = new Table();
 
 
 
@@ -149,6 +185,7 @@ static bool ToBool(int i) {
 
 	static void Print() {
 		Expect(print_Sym);
+		int value;
 		Expression(value);
 		while (WeakSeparator(comma_Sym, 1, 2)) {
 			Expression(Expralue);
@@ -158,127 +195,193 @@ static bool ToBool(int i) {
 	}
 
 	static void Assignment() {
-		Variable();
+		int value;
+		string name = token.val;
+		Variable(value);
 		Expect(equal_Sym);
 		Expression(value);
+		Table.set(name, value);
 		while (!(la.kind == EOF_SYM || la.kind == semicolon_Sym)) {SynErr(28); Get();}
 		Expect(semicolon_Sym);
 	}
 
-	static void Variable() {
+	static void Variable(out int value) {
+		value = Table.valueOf(token.val);
 		Expect(identifier_Sym);
 	}
 
-	static void Expression(value) {
-		AndExp();
+	static void Expression(out int value) {
+		AndExp(value);
 		while (la.kind == barbar_Sym) {
+			int andValue;
 			Get();
-			AndExp();
+			AndExp(andValue);
+			value = ((value != 0) || (andValue != 0));
 		}
 	}
 
-	static void AndExp() {
-		EqlExp();
+	static void AndExp(out int value) {
+		EqlExp(value);
 		while (la.kind == andand_Sym) {
+			int eqlValue;
 			Get();
-			EqlExp();
+			EqlExp(eqlValue);
+			value = ((value != 0) && (eqlValue != 0)) ? 1 : 0;
 		}
 	}
 
-	static void EqlExp() {
-		RelExp();
+	static void EqlExp(out int value) {
+		RelExp(value);
 		while (la.kind == equalequal_Sym || la.kind == bangequal_Sym) {
-			EqlOp();
-			RelExp();
+			int relValue;
+			string eqlOpKind;
+			EqlOp(eqlOpKind);
+			switch(relOpKind) {
+			case "==":
+			RelExp(addValue);
+			value = (value == addValue) ? 1 : 0;
+			case "==":
+			RelExp(addValue);
+			value = (value != addValue) ? 1 : 0;
+			}
 		}
 	}
 
-	static void RelExp() {
-		AddExp();
+	static void RelExp(out int value) {
+		AddExp(value);
 		if (StartOf(3)) {
-			RelOp();
-			AddExp();
+			int addValue;
+			string relOpKind;
+			RelOp(relOpKind);
+			switch(relOpKind) {
+			case "<":
+			AddExp(addValue);
+			value = (value < addValue) ? 1 : 0;
+			case "<=":
+			AddExp(addValue);
+			value = (value <= addValue) ? 1 : 0;
+			case ">":
+			AddExp(addValue);
+			value = (value > addValue) ? 1 : 0;
+			case ">=":
+			AddExp(addValue);
+			value = (value >= addValue) ? 1 : 0;
+			}
 		}
 	}
 
-	static void EqlOp() {
+	static void EqlOp(out string kind) {
 		if (la.kind == equalequal_Sym) {
 			Get();
+			kind = "==";
 		} else if (la.kind == bangequal_Sym) {
 			Get();
+			kind = "!=";
 		} else SynErr(29);
 	}
 
-	static void AddExp() {
-		MultExp();
+	static void AddExp(out int value) {
+		MultExp(value);
 		while (la.kind == plus_Sym || la.kind == minus_Sym) {
-			AddOp();
-			MultExp();
+			int multValue;
+			string addOpKind;
+			AddOp(addOpKind);
+			switch(addOpKind) {
+			case "+":
+			MultExp(multValue);
+			value += multValue;
+			case "-":
+			MultExp(multValue);
+			value -= multValue;
+			}
 		}
 	}
 
-	static void RelOp() {
+	static void RelOp(out string kind) {
 		if (la.kind == less_Sym) {
 			Get();
+			kind = "<";
 		} else if (la.kind == lessequal_Sym) {
 			Get();
+			kind = "<=";
 		} else if (la.kind == greater_Sym) {
 			Get();
+			kind = ">";
 		} else if (la.kind == greaterequal_Sym) {
 			Get();
+			kind = ">=";
 		} else SynErr(30);
 	}
 
-	static void MultExp() {
-		UnaryExp();
+	static void MultExp(out int value) {
+		UnaryExp(value);
 		while (la.kind == star_Sym || la.kind == slash_Sym || la.kind == percent_Sym) {
-			MulOp();
-			UnaryExp();
+			int unaryValue;
+			string mulOpKind;
+			MulOp(mulOpKind);
+			switch(mulOpKind) {
+			case "*":
+			UnaryExp(unaryValue);
+			value *= unaryValue;
+			case "/":
+			UnaryExp(unaryValue);
+			value /= unaryValue;
+			case "%":
+			UnaryExp(unaryValue);
+			value %= unaryValue;
+			}
 		}
 	}
 
-	static void AddOp() {
+	static void AddOp(out string kind) {
 		if (la.kind == plus_Sym) {
 			Get();
+			kind = "+";
 		} else if (la.kind == minus_Sym) {
 			Get();
+			kind = "-";
 		} else SynErr(31);
 	}
 
-	static void UnaryExp() {
+	static void UnaryExp(out int value) {
 		if (StartOf(4)) {
-			Factor();
+			Factor(value);
 		} else if (la.kind == plus_Sym) {
 			Get();
-			UnaryExp();
+			UnaryExp(+ value);
 		} else if (la.kind == minus_Sym) {
 			Get();
-			UnaryExp();
+			UnaryExp(- value);
 		} else if (la.kind == bang_Sym) {
 			Get();
-			UnaryExp();
+			UnaryExp(! value);
 		} else SynErr(32);
 	}
 
-	static void MulOp() {
+	static void MulOp(out string kind) {
 		if (la.kind == star_Sym) {
 			Get();
+			kind = "*";
 		} else if (la.kind == slash_Sym) {
 			Get();
+			kind = "/";
 		} else if (la.kind == percent_Sym) {
 			Get();
+			kind = "%";
 		} else SynErr(33);
 	}
 
-	static void Factor() {
+	static void Factor(out int value) {
 		if (la.kind == identifier_Sym) {
-			Variable();
+			Variable(value);
 		} else if (la.kind == number_Sym) {
-			Number();
+			Number(value);
 		} else if (la.kind == true_Sym) {
 			Get();
+			value = 1;
 		} else if (la.kind == false_Sym) {
 			Get();
+			value = 0;
 		} else if (la.kind == lparen_Sym) {
 			Get();
 			Expression(value);
@@ -286,7 +389,8 @@ static bool ToBool(int i) {
 		} else SynErr(34);
 	}
 
-	static void Number() {
+	static void Number(out int value) {
+		value = token.val;
 		Expect(number_Sym);
 	}
 

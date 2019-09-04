@@ -1,32 +1,41 @@
 using Library;
 using System.Collections.Generic;
 
-class Variable {
+COMPILER Calc $NC
+//  Scott Burnett && Redy van Dyk
+
+class Entry {
     public string _name;
     public int _value;
-    public Variable (string name, int value) {
+    public Entry (string name, int value) {
         _name = name;
         _value = value;
     }
 }
 
 class Table {
-    public List<Variable> variables = new List<Variable>;
-    public void set (string name, int value) {
-        int i = 0, pos = -1;
-        foreach (Variable v in variables) {
-            if (name == v._name) {
-                pos = i;
-                break;
-            }
+    public List<Entry> variables = new List<Entry>();
+    public int indexOf(string name) {
+        int i = 0;
+        foreach (Entry v in variables) {
+            if (name == v._name) return i;
             i++;
         }
-        
+        return -1;
+    }
+    public int valueOf(string name) {
+        int pos = indexOf(name);
+        if (pos == -1) return 0;
+        else return variables[pos]._value;
+    }
+    public void set (string name, int value) {
+        int pos = indexOf(name);
+        if (pos == -1)
+            variables.Add(new Entry(name, value));
+        else
+            variables[pos]._value = value;
     }
 }
-
-COMPILER Calc $NC
-//  Scott Burnett && Redy van Dyk
 
 static int ToInt(bool b) {
 // return 0 or 1 according as b is false or true
@@ -37,6 +46,8 @@ static bool ToBool(int i) {
 // return false or true according as i is 0 or 1
   return i == 0 ? false : true;
 } // ToBool
+
+static Table table = new Table();
 
 CHARACTERS
   digit      = "0123456789" .
@@ -58,15 +69,19 @@ PRODUCTIONS
 
   Assignment
   =
-  Variable
+  (. int value; .)
+  (. string name = token.val; .)
+  Variable < value >
   "="
   Expression < value >
+  (. Table.set(name, value); .)
   SYNC ";"
   .
 
   Print
   =
   "print"
+  (. int value; .)
   Expression < value >
   { WEAK ","
     Expression < Expralue >
@@ -77,56 +92,92 @@ PRODUCTIONS
   Expression < out int value >
   =
   AndExp < value >
-  { "||"
-    AndExp
+  { (. int andValue; .)
+    "||"
+    AndExp < andValue > (. value = ((value != 0) || (andValue != 0)); .)
   } .
 
   AndExp < out int value>
   =
-  EqlExp
-  { "&&"
-    EqlExp
+  EqlExp < value >
+  { (. int eqlValue; .)
+    "&&"
+    EqlExp < eqlValue > (. value = ((value != 0) && (eqlValue != 0)) ? 1 : 0; .)
   } .
 
   EqlExp < out int value >
   =
-  RelExp
-  { EqlOp
-    RelExp
+  RelExp < value >
+  { (. int relValue; .)
+    (. string eqlOpKind; .)
+    EqlOp < eqlOpKind >
+    (. switch(relOpKind) { .)
+    (. case "==": .)
+        RelExp < addValue > (. value = (value == addValue) ? 1 : 0; .)
+    (. case "==": .)
+        RelExp < addValue > (. value = (value != addValue) ? 1 : 0; .)
+    (. } .)
   } .
 
   RelExp <out int value >
   =
-  AddExp
-  [ RelOp
-    AddExp
+  AddExp < value >
+  [ (. int addValue; .)
+    (. string relOpKind; .)
+    RelOp < relOpKind >
+    (. switch(relOpKind) { .)
+    (. case "<": .)
+        AddExp < addValue > (. value = (value < addValue) ? 1 : 0; .)
+    (. case "<=": .)
+        AddExp < addValue > (. value = (value <= addValue) ? 1 : 0; .)
+    (. case ">": .)
+        AddExp < addValue > (. value = (value > addValue) ? 1 : 0; .)
+    (. case ">=": .)
+        AddExp < addValue > (. value = (value >= addValue) ? 1 : 0; .)
+    (. } .)
   ] .
 
   AddExp < out int value >
   =
-  MultExp
-  { AddOp
-    MultExp
+  MultExp < value >
+  { (. int multValue; .)
+    (. string addOpKind; .)
+    AddOp < addOpKind >
+    (. switch(addOpKind) { .)
+    (. case "+": .)
+        MultExp < multValue > (. value += multValue; .)
+    (. case "-": .)
+        MultExp < multValue > (. value -= multValue; .)
+    (. } .)
   } .
 
   MultExp < out int value >
   =
   UnaryExp < value >
-  { MulOp
-    UnaryExp
+  { (. int unaryValue; .)
+    (. string mulOpKind; .)
+    MulOp < mulOpKind >
+    (. switch(mulOpKind) { .)
+    (. case "*": .)
+        UnaryExp < unaryValue > (. value *= unaryValue; .)
+    (. case "/": .)
+        UnaryExp < unaryValue > (. value /= unaryValue; .)
+    (. case "%": .)
+        UnaryExp < unaryValue > (. value %= unaryValue; .)
+    (. } .)
   } .
 
   UnaryExp < out int value >
   =   Factor < value >
-    | "+" UnaryExp
-    | "-" UnaryExp
-    | "!" UnaryExp
+    | "+" UnaryExp < + value >
+    | "-" UnaryExp < - value >
+    | "!" UnaryExp < ! value >
   .
 
   Factor < out int value >
   =
-    Variable (. value = token.val; .)
-    | Number (. value = token.val; .) 
+    Variable < value >
+    | Number < value > 
     | "true" (. value = 1; .)
     | "false" (. value = 0; .)
     | "(" Expression < value >
@@ -135,39 +186,41 @@ PRODUCTIONS
 
   Variable < out int value >
   =
+  (. value = Table.valueOf(token.val); .)
   identifier
   .
 
   Number < out int value >
   =
+  (. value = token.val; .)
   number
   .
 
-  MulOp
+  MulOp < out string kind >
   =
-      "*"
-    | "/"
-    | "%"
+      "*" (. kind = "*"; .)
+    | "/" (. kind = "/"; .)
+    | "%" (. kind = "%"; .)
     .
 
-  AddOp
+  AddOp < out string kind >
   =
-      "+"
-    | "-"
+      "+" (. kind = "+"; .)
+    | "-" (. kind = "-"; .)
   .
 
-  RelOp
+  RelOp < out string kind >
   =
-      "<"
-    | "<="
-    | ">"
-    | ">="
+      "<" (. kind = "<"; .)
+    | "<=" (. kind = "<="; .)
+    | ">" (. kind = ">"; .)
+    | ">=" (. kind = ">="; .)
   .
 
-  EqlOp
+  EqlOp < out string kind >
   =
-      "=="
-    | "!="
+      "==" (. kind = "=="; .)
+    | "!=" (. kind = "!="; .)
   .
 
 END Calc.
