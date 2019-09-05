@@ -63,8 +63,8 @@ public class Parser {
 }
 
 class Table {
-    public List<Entry> variables = new List<Entry>();
-    public int indexOf(string name) {
+    public static List<Entry> variables = new List<Entry>();
+    public static int indexOf(string name) {
         int i = 0;
         foreach (Entry v in variables) {
             if (name == v._name) return i;
@@ -72,12 +72,12 @@ class Table {
         }
         return -1;
     }
-    public int valueOf(string name) {
+    public static int valueOf(string name) {
         int pos = indexOf(name);
         if (pos == -1) return 0;
         else return variables[pos]._value;
     }
-    public void set (string name, int value) {
+    public static void set (string name, int value) {
         int pos = indexOf(name);
         if (pos == -1)
             variables.Add(new Entry(name, value));
@@ -185,10 +185,12 @@ static Table table = new Table();
 
 	static void Print() {
 		Expect(print_Sym);
-		int value
-		Expression(value);
+		int value;
+		Expression(out value);
+		Console.WriteLine(value);
 		while (WeakSeparator(comma_Sym, 1, 2)) {
-			Expression(Expralue);
+			Expression(out value);
+			Console.WriteLine(value);
 		}
 		while (!(la.kind == EOF_SYM || la.kind == semicolon_Sym)) {SynErr(27); Get();}
 		Expect(semicolon_Sym);
@@ -197,9 +199,9 @@ static Table table = new Table();
 	static void Assignment() {
 		int value;
 		string name = token.val;
-		Variable(value);
+		Variable(out value);
 		Expect(equal_Sym);
-		Expression(value);
+		Expression(out value);
 		Table.set(name, value);
 		while (!(la.kind == EOF_SYM || la.kind == semicolon_Sym)) {SynErr(28); Get();}
 		Expect(semicolon_Sym);
@@ -211,66 +213,67 @@ static Table table = new Table();
 	}
 
 	static void Expression(out int value) {
-		AndExp(value);
+		AndExp(out value);
 		while (la.kind == barbar_Sym) {
 			int andValue;
 			Get();
-			AndExp(andValue);
-			value = ((value != 0) || (andValue != 0));
+			AndExp(out andValue);
+			value = ((value != 0) || (andValue != 0)) ? 1 : 0;
 		}
 	}
 
 	static void AndExp(out int value) {
-		EqlExp(value);
+		EqlExp(out value);
 		while (la.kind == andand_Sym) {
 			int eqlValue;
 			Get();
-			EqlExp(eqlValue);
+			EqlExp(out eqlValue);
 			value = ((value != 0) && (eqlValue != 0)) ? 1 : 0;
 		}
 	}
 
 	static void EqlExp(out int value) {
-		RelExp(value);
+		RelExp(out value);
 		while (la.kind == equalequal_Sym || la.kind == bangequal_Sym) {
 			int relValue;
 			string eqlOpKind;
-			EqlOp(eqlOpKind);
-			switch(relOpKind) {
+			EqlOp(out eqlOpKind);
+			switch(eqlOpKind) {
 			case "==":
-			RelExp(addValue);
-			value = (value == addValue) ? 1 : 0;
-			case "==":
-			RelExp(addValue);
-			value = (value != addValue) ? 1 : 0;
+			RelExp(out relValue);
+			value = (value == relValue) ? 1 : 0; break;
+			case "!=":
+			RelExp(out relValue);
+			value = (value != relValue) ? 1 : 0; break;
 			}
 		}
 	}
 
 	static void RelExp(out int value) {
-		AddExp(value);
+		AddExp(out value);
 		if (StartOf(3)) {
 			int addValue;
 			string relOpKind;
-			RelOp(relOpKind);
+			RelOp(out relOpKind);
 			switch(relOpKind) {
 			case "<":
-			AddExp(addValue);
-			value = (value < addValue) ? 1 : 0;
+			AddExp(out addValue);
+			value = (value < addValue) ? 1 : 0; break;
 			case "<=":
-			AddExp(addValue);
-			value = (value <= addValue) ? 1 : 0;
+			AddExp(out addValue);
+			value = (value <= addValue) ? 1 : 0; break;
 			case ">":
-			AddExp(addValue);
-			value = (value > addValue) ? 1 : 0;
+			AddExp(out addValue);
+			value = (value > addValue) ? 1 : 0; break;
 			case ">=":
-			AddExp(addValue);
-			value = (value >= addValue) ? 1 : 0;
+			AddExp(out addValue);
+			value = (value >= addValue) ? 1 : 0; break;
 			}
 		}
 	}
 
 	static void EqlOp(out string kind) {
+		kind = "";
 		if (la.kind == equalequal_Sym) {
 			Get();
 			kind = "==";
@@ -281,23 +284,24 @@ static Table table = new Table();
 	}
 
 	static void AddExp(out int value) {
-		MultExp(value);
+		MultExp(out value);
 		while (la.kind == plus_Sym || la.kind == minus_Sym) {
 			int multValue;
 			string addOpKind;
-			AddOp(addOpKind);
+			AddOp(out addOpKind);
 			switch(addOpKind) {
 			case "+":
-			MultExp(multValue);
-			value += multValue;
+			MultExp(out multValue);
+			value += multValue; break;
 			case "-":
-			MultExp(multValue);
-			value -= multValue;
+			MultExp(out multValue);
+			value -= multValue; break;
 			}
 		}
 	}
 
 	static void RelOp(out string kind) {
+		kind = "";
 		if (la.kind == less_Sym) {
 			Get();
 			kind = "<";
@@ -314,26 +318,27 @@ static Table table = new Table();
 	}
 
 	static void MultExp(out int value) {
-		UnaryExp(value);
+		UnaryExp(out value);
 		while (la.kind == star_Sym || la.kind == slash_Sym || la.kind == percent_Sym) {
 			int unaryValue;
 			string mulOpKind;
-			MulOp(mulOpKind);
+			MulOp(out mulOpKind);
 			switch(mulOpKind) {
 			case "*":
-			UnaryExp(unaryValue);
-			value *= unaryValue;
+			UnaryExp(out unaryValue);
+			value *= unaryValue; break;
 			case "/":
-			UnaryExp(unaryValue);
-			value /= unaryValue;
+			UnaryExp(out unaryValue);
+			value /= unaryValue; break;
 			case "%":
-			UnaryExp(unaryValue);
-			value %= unaryValue;
+			UnaryExp(out unaryValue);
+			value %= unaryValue; break;
 			}
 		}
 	}
 
 	static void AddOp(out string kind) {
+		kind = "";
 		if (la.kind == plus_Sym) {
 			Get();
 			kind = "+";
@@ -344,21 +349,26 @@ static Table table = new Table();
 	}
 
 	static void UnaryExp(out int value) {
+		value = 0;
 		if (StartOf(4)) {
-			Factor(value);
+			Factor(out value);
 		} else if (la.kind == plus_Sym) {
 			Get();
-			UnaryExp(+ value);
+			UnaryExp(out value);
+			value = + value;
 		} else if (la.kind == minus_Sym) {
 			Get();
-			UnaryExp(- value);
+			UnaryExp(out value);
+			value = - value;
 		} else if (la.kind == bang_Sym) {
 			Get();
-			UnaryExp(! value);
+			UnaryExp(out value);
+			value = (value != 0) ? 1 : 0;
 		} else SynErr(32);
 	}
 
 	static void MulOp(out string kind) {
+		kind = "";
 		if (la.kind == star_Sym) {
 			Get();
 			kind = "*";
@@ -372,10 +382,11 @@ static Table table = new Table();
 	}
 
 	static void Factor(out int value) {
+		value = 0;
 		if (la.kind == identifier_Sym) {
-			Variable(value);
+			Variable(out value);
 		} else if (la.kind == number_Sym) {
-			Number(value);
+			Number(out value);
 		} else if (la.kind == true_Sym) {
 			Get();
 			value = 1;
@@ -384,13 +395,13 @@ static Table table = new Table();
 			value = 0;
 		} else if (la.kind == lparen_Sym) {
 			Get();
-			Expression(value);
+			Expression(out value);
 			Expect(rparen_Sym);
 		} else SynErr(34);
 	}
 
 	static void Number(out int value) {
-		value = token.val;
+		Int32.TryParse(token.val, out value);
 		Expect(number_Sym);
 	}
 
