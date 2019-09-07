@@ -197,9 +197,9 @@ static Table table = new Table();
 	}
 
 	static void Assignment() {
-		int value;
+		int value, initValue;
 		string name = token.val;
-		Variable(out value);
+		Variable(out initValue);
 		Expect(equal_Sym);
 		Expression(out value);
 		Table.set(name, value);
@@ -208,8 +208,8 @@ static Table table = new Table();
 	}
 
 	static void Variable(out int value) {
-		value = Table.valueOf(token.val);
 		Expect(identifier_Sym);
+		value = Table.valueOf(token.val);
 	}
 
 	static void Expression(out int value) {
@@ -329,7 +329,8 @@ static Table table = new Table();
 			value *= unaryValue; break;
 			case "/":
 			UnaryExp(out unaryValue);
-			value /= unaryValue; break;
+			if (unaryValue != 0) { value /= unaryValue; break; }
+			else SemErr("Attempted to divide by zero"); value = 0; break; }
 			case "%":
 			UnaryExp(out unaryValue);
 			value %= unaryValue; break;
@@ -401,8 +402,8 @@ static Table table = new Table();
 	}
 
 	static void Number(out int value) {
-		Int32.TryParse(token.val, out value);
 		Expect(number_Sym);
+		value = Convert.ToInt32(token.val);
 	}
 
 

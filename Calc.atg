@@ -69,9 +69,9 @@ PRODUCTIONS
 
   Assignment
   =
-  (. int value = 0; .)
+  (. int value, initValue; .)
   (. string name = token.val; .)
-  Variable < out value >
+  Variable < out initValue >
   "="
   Expression < out value >
   (. Table.set(name, value); .)
@@ -81,7 +81,7 @@ PRODUCTIONS
   Print
   =
   "print"
-  (. int value = 0; .)
+  (. int value; .)
   Expression < out value >
   (. Console.WriteLine(value); .)
   { WEAK ","
@@ -163,7 +163,8 @@ PRODUCTIONS
     (. case "*": .)
         UnaryExp < out unaryValue > (. value *= unaryValue; break; .)
     (. case "/": .)
-        UnaryExp < out unaryValue > (. value /= unaryValue; break; .)
+        UnaryExp < out unaryValue > (. if (unaryValue != 0) { value /= unaryValue; break; } .)
+                                    (. else { SemErr("Attempted to divide by zero"); value = 0; break; } .)
     (. case "%": .)
         UnaryExp < out unaryValue > (. value %= unaryValue; break; .)
     (. } .)
@@ -189,15 +190,15 @@ PRODUCTIONS
   .
 
   Variable < out int value >
-  (. value = Table.valueOf(token.val); .)
   =
   identifier
+  (. value = Table.valueOf(token.val); .)
   .
 
   Number < out int value >
-  (. Int32.TryParse(token.val, out value); .)
   =
   number
+  (. value = Convert.ToInt32(token.val); .)
   .
 
   MulOp < out string kind >

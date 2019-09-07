@@ -72,9 +72,9 @@
   69 
   70   Assignment
   71   =
-  72   (. int value = 0; .)
+  72   (. int value, initValue; .)
   73   (. string name = token.val; .)
-  74   Variable < out value >
+  74   Variable < out initValue >
   75   "="
   76   Expression < out value >
   77   (. Table.set(name, value); .)
@@ -84,7 +84,7 @@
   81   Print
   82   =
   83   "print"
-  84   (. int value = 0; .)
+  84   (. int value; .)
   85   Expression < out value >
   86   (. Console.WriteLine(value); .)
   87   { WEAK ","
@@ -166,75 +166,76 @@
  163     (. case "*": .)
  164         UnaryExp < out unaryValue > (. value *= unaryValue; break; .)
  165     (. case "/": .)
- 166         UnaryExp < out unaryValue > (. value /= unaryValue; break; .)
- 167     (. case "%": .)
- 168         UnaryExp < out unaryValue > (. value %= unaryValue; break; .)
- 169     (. } .)
- 170   } .
- 171 
- 172   UnaryExp < out int value >
- 173   (. value = 0; .)
- 174   =   Factor < out value >
- 175     | "+" UnaryExp < out value > (. value = + value; .)
- 176     | "-" UnaryExp < out value > (. value = - value; .)
- 177     | "!" UnaryExp < out value > (. value = (value != 0) ? 1 : 0; .)
- 178   .
- 179 
- 180   Factor < out int value >
- 181   (. value = 0; .)
- 182   =
- 183     Variable < out value >
- 184     | Number < out value > 
- 185     | "true" (. value = 1; .)
- 186     | "false" (. value = 0; .)
- 187     | "(" Expression < out value >
- 188       ")"
- 189   .
- 190 
- 191   Variable < out int value >
- 192   (. value = Table.valueOf(token.val); .)
+ 166         UnaryExp < out unaryValue > (. if (unaryValue != 0) { value /= unaryValue; break; } .)
+ 167                                     (. else { SemErr("Attempted to divide by zero"); value = 0; break; } .)
+ 168     (. case "%": .)
+ 169         UnaryExp < out unaryValue > (. value %= unaryValue; break; .)
+ 170     (. } .)
+ 171   } .
+ 172 
+ 173   UnaryExp < out int value >
+ 174   (. value = 0; .)
+ 175   =   Factor < out value >
+ 176     | "+" UnaryExp < out value > (. value = + value; .)
+ 177     | "-" UnaryExp < out value > (. value = - value; .)
+ 178     | "!" UnaryExp < out value > (. value = (value != 0) ? 1 : 0; .)
+ 179   .
+ 180 
+ 181   Factor < out int value >
+ 182   (. value = 0; .)
+ 183   =
+ 184     Variable < out value >
+ 185     | Number < out value > 
+ 186     | "true" (. value = 1; .)
+ 187     | "false" (. value = 0; .)
+ 188     | "(" Expression < out value >
+ 189       ")"
+ 190   .
+ 191 
+ 192   Variable < out int value >
  193   =
  194   identifier
- 195   .
- 196 
- 197   Number < out int value >
- 198   (. Int32.TryParse(token.val, out value); .)
+ 195   (. value = Table.valueOf(token.val); .)
+ 196   .
+ 197 
+ 198   Number < out int value >
  199   =
  200   number
- 201   .
- 202 
- 203   MulOp < out string kind >
- 204   (. kind = ""; .)
- 205   =
- 206       "*" (. kind = "*"; .)
- 207     | "/" (. kind = "/"; .)
- 208     | "%" (. kind = "%"; .)
- 209     .
- 210 
- 211   AddOp < out string kind >
- 212     (. kind = ""; .)
- 213   =
- 214       "+" (. kind = "+"; .)
- 215     | "-" (. kind = "-"; .)
- 216   .
- 217 
- 218   RelOp < out string kind >
- 219   (. kind = ""; .)
- 220   =
- 221       "<" (. kind = "<"; .)
- 222     | "<=" (. kind = "<="; .)
- 223     | ">" (. kind = ">"; .)
- 224     | ">=" (. kind = ">="; .)
- 225   .
- 226 
- 227   EqlOp < out string kind >
- 228   (. kind = ""; .)
- 229   =
- 230       "==" (. kind = "=="; .)
- 231     | "!=" (. kind = "!="; .)
- 232   .
- 233 
- 234 END Calc.
+ 201   (. value = Convert.ToInt32(token.val); .)
+ 202   .
+ 203 
+ 204   MulOp < out string kind >
+ 205   (. kind = ""; .)
+ 206   =
+ 207       "*" (. kind = "*"; .)
+ 208     | "/" (. kind = "/"; .)
+ 209     | "%" (. kind = "%"; .)
+ 210     .
+ 211 
+ 212   AddOp < out string kind >
+ 213     (. kind = ""; .)
+ 214   =
+ 215       "+" (. kind = "+"; .)
+ 216     | "-" (. kind = "-"; .)
+ 217   .
+ 218 
+ 219   RelOp < out string kind >
+ 220   (. kind = ""; .)
+ 221   =
+ 222       "<" (. kind = "<"; .)
+ 223     | "<=" (. kind = "<="; .)
+ 224     | ">" (. kind = ">"; .)
+ 225     | ">=" (. kind = ">="; .)
+ 226   .
+ 227 
+ 228   EqlOp < out string kind >
+ 229   (. kind = ""; .)
+ 230   =
+ 231       "==" (. kind = "=="; .)
+ 232     | "!=" (. kind = "!="; .)
+ 233   .
+ 234 
+ 235 END Calc.
 
 0 errors detected
 2 warnings detected
