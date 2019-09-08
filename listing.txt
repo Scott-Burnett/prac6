@@ -1,242 +1,191 @@
-  LL1 warning in AddExp: "+" is the start & successor of a deletable structure
-  LL1 warning in AddExp: "-" is the start & successor of a deletable structure
 
-   1 using Library;
-   2 using System.Collections.Generic;
-   3 
-   4 COMPILER Calc $NC
-   5 //  Scott Burnett && Redy van Dyk
-   6 
-   7 class Entry {
-   8     public string _name;
-   9     public int _value;
-  10     public Entry (string name, int value) {
-  11         _name = name;
-  12         _value = value;
-  13     }
-  14 }
-  15 
-  16 class Table {
-  17     public static List<Entry> variables = new List<Entry>();
-  18     public static int indexOf(string name) {
-  19         int i = 0;
-  20         foreach (Entry v in variables) {
-  21             if (name == v._name) return i;
-  22             i++;
-  23         }
-  24         return -1;
-  25     }
-  26     public static int valueOf(string name) {
-  27         int pos = indexOf(name);
-  28         if (pos == -1) return 0;
-  29         else return variables[pos]._value;
-  30     }
-  31     public static void set (string name, int value) {
-  32         int pos = indexOf(name);
-  33         if (pos == -1)
-  34             variables.Add(new Entry(name, value));
-  35         else
-  36             variables[pos]._value = value;
-  37     }
-  38 }
-  39 
-  40 static int ToInt(bool b) {
-  41 // return 0 or 1 according as b is false or true
-  42   return b ? 1 : 0;
-  43 } // ToInt
-  44 
-  45 static bool ToBool(int i) {
-  46 // return false or true according as i is 0 or 1
-  47   return i == 0 ? false : true;
-  48 } // ToBool
+   1 COMPILER Parva $CN
+   2 /* Parva level 1 grammar  - Coco/R for C# (EBNF)
+   3    P.D. Terry, Rhodes University, 2016
+   4    Extended Grammar similar to that done in Prac 3  */
+   5 
+   6     static Table table = new Table();
+   7    
+   8 CHARACTERS
+   9   lf         = CHR(10) .
+  10   backslash  = CHR(92) .
+  11   control    = CHR(0) .. CHR(31) .
+  12   letter     = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" .
+  13   digit      = "0123456789" .
+  14   stringCh   = ANY - '"' - control - backslash .
+  15   charCh     = ANY - "'" - control - backslash .
+  16   printable  = ANY - control .
+  17 
+  18 TOKENS
+  19 
+  20 /* Insisting that identifiers cannot end with an underscore is quite easy */
+  21 
+  22   identifier = letter { letter | digit | "_" { "_" } ( letter | digit ) } .
+  23 
+  24 /* but a simpler version is what many people think of
+  25 
+  26   identifier = letter { letter | digit | "_" ( letter | digit ) } .
+  27 
+  28    Technically this is not quite what was asked.  The restriction is really that an
+  29    identifier cannot end with an underscore.  Identifiers like Pat_____Terry are allowed: */
+  30 
+  31   number     = digit { digit } .
+  32   stringLit  = '"' { stringCh | backslash printable } '"' .
+  33   charLit    = "'" ( charCh   | backslash printable ) "'" .
+  34 
+  35 COMMENTS FROM "//" TO lf
+  36 COMMENTS FROM "/*" TO "*/"
+  37 IGNORE CHR(9) .. CHR(13)
+  38 
+  39 PRODUCTIONS
+  40   Parva             = "void"
+  41                     Ident
+  42                     (. Table.declare(token.val, funcKind, noType, token.line); .)
+  43                     "(" ")"
+  44                     Block
+  45                     (. Table.PrintTable(); .) .
+  46   Block             = "{"
+  47                     { Statement }
+  48                     "}" .
   49 
-  50 static Table table = new Table();
+  50 /* The options in Statement are easily extended to handle the new forms */
   51 
-  52 CHARACTERS
-  53   digit      = "0123456789" .
-  54   letter     = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" .
-  55 
-  56 TOKENS
-  57   number     = digit { digit } .
-  58   identifier = letter { letter | digit } .
-  59 
-  60 IGNORE CHR(0) .. CHR(31)
+  52   Statement         =    Block
+  53                        | ConstDeclarations | VarDeclarations
+  54                        | Assignments
+  55                        | IfStatement       | WhileStatement
+  56                        | ReturnStatement   | HaltStatement
+  57                        | ReadStatement     | WriteStatement
+  58                        | ForStatement      | BreakStatement
+  59                        | ContinueStatement | DoWhileStatement
+  60                        | ";" .
   61 
-  62 PRODUCTIONS
-  63   Calc
-  64   =
-  65   { Print
-  66   | Assignment 
-  67   } "quit"
-  68   .
-  69 
-  70   Assignment
-  71   =
-  72   (. int value, initValue; .)
-  73   (. string name = token.val; .)
-  74   Variable < out initValue >
-  75   "="
-  76   Expression < out value >
-  77   (. Table.set(name, value); .)
-  78   SYNC ";"
-  79   .
-  80 
-  81   Print
-  82   =
-  83   "print"
-  84   (. int value; .)
-  85   Expression < out value >
-  86   (. Console.WriteLine(value); .)
-  87   { WEAK ","
-  88     Expression < out value >
-  89     (. Console.WriteLine(value); .)
-  90   }
-  91   SYNC ";"
-  92   .
+  62 /* Declarations remain the same as before */
+  63 
+  64   ConstDeclarations = "const" OneConst { "," OneConst } ";" .
+  65   OneConst          = Ident
+  66                     (. string name = token.val; .)
+  67                     (.int kind = constKind, value = 0, type = noType, lineRef = token.line; .)
+  68                     (. Table.AddRef(token.val, true, token.line); .)
+  69                     "="
+  70                     Constant < out value, out type >.
+  71                     (. Table.declare(name, kind, type, value); .)
+****                     ^ "END" expected
+  72   Constant < out int value, out int type >
+  73                     =
+  74                     number (. value = Convert.ToInt32(token.val); type = intType; .)
+  75                     | charLit (. value = Convert.ToInt32(token.val); type = charType; .)
+  76                     | "true" (. value = 1; type = boolType; .)
+  77                     | "false" (. value = 0; type = boolType; .)
+  78                     | "null" (. value = 0; type = noType; .)
+  79                     .
+  80   VarDeclarations   = Type OneVar { "," OneVar } ";" .
+  81 
+  82 /* We can introduce the extra form of asssignment operators as tokens as follows.  Note
+  83    theta we do not want to use, say "+" "=" because they cannot contain spaces. */
+  84 
+  85   CompoundAssignOp  = "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" .
+  86 
+  87 /* Don't be tempted to use the CompoundAssignOp in the declaration of OneVar or OneConst.
+  88    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
+  89 
+  90   OneVar            = Ident
+  91                     (. Table.AddRef(token.val, true, token.line); .)
+  92                     [ "=" Expression ] .
   93 
-  94   Expression < out int value >
-  95   =
-  96   AndExp < out value >
-  97   { (. int andValue; .)
-  98     "||"
-  99     AndExp < out andValue > (. value = ((value != 0) || (andValue != 0)) ? 1 : 0; .)
- 100   } .
- 101 
- 102   AndExp < out int value>
- 103   =
- 104   EqlExp < out value >
- 105   { (. int eqlValue; .)
- 106     "&&"
- 107     EqlExp < out eqlValue > (. value = ((value != 0) && (eqlValue != 0)) ? 1 : 0; .)
- 108   } .
- 109 
- 110   EqlExp < out int value >
- 111   =
- 112   RelExp < out value >
- 113   { (. int relValue; .)
- 114     (. string eqlOpKind; .)
- 115     EqlOp < out eqlOpKind >
- 116     (. switch(eqlOpKind) { .)
- 117     (. case "==": .)
- 118         RelExp < out relValue > (. value = (value == relValue) ? 1 : 0; break; .)
- 119     (. case "!=": .)
- 120         RelExp < out relValue > (. value = (value != relValue) ? 1 : 0; break; .)
- 121     (. } .)
- 122   } .
+  94 /* One way of introducing the extended form of assignment statements might be to define
+  95 
+  96   Assignments = Designator { "," Designator } ( "=" | CompoundAssignOp )
+  97                 Expression { "," Expression } .
+  98 
+  99 */
+ 100 
+ 101 /* However, we might wish to limit the form with multiple Designators and Expressions to
+ 102    use only the simple = operator, for ease of code generation as we may see later.
+ 103 
+ 104    If this is the case, to keep thing LL(1) compliant, the extra forms of assignment
+ 105    statement familiar from Python, and the compound assignments familiar from C and C# are
+ 106    best handled as below.  THis affords a nice example of factoring a grammar to avoid
+ 107    LL(1) conflicts by delaying the awkward component for a while */
+ 108 
+ 109   Assignments       = Designator
+ 110                       (   CompoundAssignOp Expression
+ 111                         | { "," Designator } "=" Expression { "," Expression }
+ 112                         | "++"
+ 113                         | "--"
+ 114                       ) ";" .
+ 115 
+ 116   Designator        = Ident                    
+ 117                     [ "[" Expression "]" ] .
+ 118 
+ 119 /* The if-then-elsif-else construction is most easily described as follows. Although
+ 120   this is not LL(1), this works admirably - it is simply the well-known dangling
+ 121   else ambiguity, which the parser resolves by associating elsif and else clauses
+ 122   with the most recent if */
  123 
- 124   RelExp <out int value >
- 125   =
- 126   AddExp < out value >
- 127   [ (. int addValue; .)
- 128     (. string relOpKind; .)
- 129     RelOp < out relOpKind >
- 130     (. switch(relOpKind) { .)
- 131     (. case "<": .)
- 132         AddExp < out addValue > (. value = (value < addValue) ? 1 : 0; break; .)
- 133     (. case "<=": .)
- 134         AddExp < out addValue > (. value = (value <= addValue) ? 1 : 0; break; .)
- 135     (. case ">": .)
- 136         AddExp < out addValue > (. value = (value > addValue) ? 1 : 0; break; .)
- 137     (. case ">=": .)
- 138         AddExp < out addValue > (. value = (value >= addValue) ? 1 : 0; break; .)
- 139     (. } .)
- 140   ] .
+ 124   IfStatement       = "if" "(" Condition ")" Statement
+ 125                       { "elsif" "(" Condition ")" Statement }
+ 126                       [ "else" Statement ] .
+ 127 
+ 128   WhileStatement    = "while" "(" Condition ")" Statement .
+ 129 
+ 130 /* Remember that the DoWhile statement must end with a semicolon - easy to forget this!
+ 131    Why don't we need a semicolon as a terminator for a WhileStatement or IfStatement? */
+ 132 
+ 133   DoWhileStatement  = "do"  Statement  "while" "(" Condition ")" ";" .
+ 134 
+ 135 /* Break and Continue statements are very simple.  They are really "context dependent" but we
+ 136    cannot impose such restrictions in a context-free grammar.  And they also need their own
+ 137    terminating semicolons, which tend to be forgotten. */
+ 138 
+ 139   BreakStatement    = "break"    ";" .
+ 140   ContinueStatement = "continue" ";" .
  141 
- 142   AddExp < out int value >
- 143   =
- 144   MultExp < out value >
- 145   { (. int multValue; .)
- 146     (. string addOpKind; .)
- 147     AddOp < out addOpKind >
- 148     (. switch(addOpKind) { .)
- 149     (. case "+": .)
- 150         MultExp < out multValue > (. value += multValue; break;.)
- 151     (. case "-": .)
- 152         MultExp < out multValue > (. value -= multValue; break; .)
- 153     (. } .)
- 154   } .
- 155 
- 156   MultExp < out int value >
- 157   =
- 158   UnaryExp < out value >
- 159   { (. int unaryValue; .)
- 160     (. string mulOpKind; .)
- 161     MulOp < out mulOpKind >
- 162     (. switch(mulOpKind) { .)
- 163     (. case "*": .)
- 164         UnaryExp < out unaryValue > (. value *= unaryValue; break; .)
- 165     (. case "/": .)
- 166         UnaryExp < out unaryValue > (. if (unaryValue != 0) { value /= unaryValue; break; } .)
- 167                                     (. else { SemErr("Attempted to divide by zero"); value = 0; break; } .)
- 168     (. case "%": .)
- 169         UnaryExp < out unaryValue > (. if (unaryValue != 0) { value %= unaryValue; break; } .)
- 170                                     (. else { SemErr("Attempted to divide by zero"); value = 0; break; } .)
- 171     (. } .)
- 172   } .
- 173 
- 174   UnaryExp < out int value >
- 175   (. value = 0; .)
- 176   =   Factor < out value >
- 177     | "+" UnaryExp < out value > (. value = + value; .)
- 178     | "-" UnaryExp < out value > (. value = - value; .)
- 179     | "!" UnaryExp < out value > (. value = (value == 0) ? 1 : 0; .)
- 180   .
- 181 
- 182   Factor < out int value >
- 183   (. value = 0; .)
- 184   =
- 185     Variable < out value >
- 186     | Number < out value > 
- 187     | "true" (. value = 1; .)
- 188     | "false" (. value = 0; .)
- 189     | "(" Expression < out value >
- 190       ")"
- 191   .
- 192 
- 193   Variable < out int value >
- 194   =
- 195   identifier
- 196   (. value = Table.valueOf(token.val); .)
- 197   .
- 198 
- 199   Number < out int value >
- 200   =
- 201   number
- 202   (. value = Convert.ToInt32(token.val); .)
- 203   .
- 204 
- 205   MulOp < out string kind >
- 206   (. kind = ""; .)
- 207   =
- 208       "*" (. kind = "*"; .)
- 209     | "/" (. kind = "/"; .)
- 210     | "%" (. kind = "%"; .)
- 211     .
- 212 
- 213   AddOp < out string kind >
- 214     (. kind = ""; .)
- 215   =
- 216       "+" (. kind = "+"; .)
- 217     | "-" (. kind = "-"; .)
- 218   .
- 219 
- 220   RelOp < out string kind >
- 221   (. kind = ""; .)
- 222   =
- 223       "<" (. kind = "<"; .)
- 224     | "<=" (. kind = "<="; .)
- 225     | ">" (. kind = ">"; .)
- 226     | ">=" (. kind = ">="; .)
- 227   .
- 228 
- 229   EqlOp < out string kind >
- 230   (. kind = ""; .)
- 231   =
- 232       "==" (. kind = "=="; .)
- 233     | "!=" (. kind = "!="; .)
- 234   .
- 235 
- 236 END Calc.
+ 142   ReturnStatement   = "return"   ";" .
+ 143   HaltStatement     = "halt"     ";" .
+ 144 
+ 145 /* a C# inspired ForStatement might look like this */
+ 146 
+ 147   ForStatement      = "for" "(" (. bool temp = false; .) 
+ 148                         [ [ BasicType (. temp = true; .) ]
+ 149                         Ident
+ 150                         (. Table.AddRef(token.val, temp, token.line); .)
+ 151                         "=" Expression ]
+ 152                         ";"
+ 153                         [ Condition ] ";"
+ 154                         [ Step ]
+ 155                       ")" Statement .
+ 156 
+ 157   Step              =  Ident
+ 158                     (. Table.AddRef(token.val, false, token.line); .)
+ 159                     ( "++" | "--" | ( "=" | CompoundAssignOp ) Expression ) .
+ 160 
+ 161   ReadStatement     = "read" "(" ReadElement { "," ReadElement } ")" ";" .
+ 162   ReadElement       = stringLit 
+ 163                       | Designator 
+ 164                       (. Table.AddRef(token.val, true, token.line); .) .
+ 165   WriteStatement    = "write" "(" WriteElement { "," WriteElement } ")" ";" .
+ 166   WriteElement      = stringLit | Expression .
+ 167   Condition         = Expression .
+ 168   Expression        = AddExp [ RelOp AddExp ] .
+ 169   AddExp            = [ "+" | "-" ] Term { AddOp Term } .
+ 170   Term              = Factor { MulOp Factor } .
+ 171   Factor            = Designator  (. Table.AddRef(token.val, false, token.line); .)
+ 172                       | Constant
+ 173                       | "new" BasicType "[" Expression "]"
+ 174                       | "!" Factor | "(" Expression ")" .
+ 175   Type              = BasicType [ "[]" ] .
+ 176   BasicType         = "int" | "bool" .
+ 177   AddOp             = "+" | "-" | "||" .
+ 178 
+ 179 /* The % operator is easily added to the set of MulOps */
+ 180 
+ 181   MulOp             = "*" | "/" | "&&" | "%" .
+ 182 
+ 183   RelOp             = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+ 184 
+ 185   Ident             = identifier .
+ 186 
+ 187 END Parva.
 
-0 errors detected
-2 warnings detected
+1 errors detected

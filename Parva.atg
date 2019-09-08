@@ -67,8 +67,9 @@ PRODUCTIONS
                     (.int kind = constKind, value = 0, type = noType, lineRef = token.line; .)
                     (. Table.AddRef(token.val, true, token.line); .)
                     "="
-                    Constant < out value, out type >.
+                    Constant < out value, out type >
                     (. Table.declare(name, kind, type, value); .)
+                    .
   Constant < out int value, out int type >
                     =
                     number (. value = Convert.ToInt32(token.val); type = intType; .)
