@@ -333,7 +333,8 @@ static Table table = new Table();
 			else { SemErr("Attempted to divide by zero"); value = 0; break; }
 			case "%":
 			UnaryExp(out unaryValue);
-			value %= unaryValue; break;
+			if (unaryValue != 0) { value %= unaryValue; break; }
+			else { SemErr("Attempted to divide by zero"); value = 0; break; }
 			}
 		}
 	}
@@ -364,7 +365,7 @@ static Table table = new Table();
 		} else if (la.kind == bang_Sym) {
 			Get();
 			UnaryExp(out value);
-			value = (value != 0) ? 1 : 0;
+			value = (value == 0) ? 1 : 0;
 		} else SynErr(32);
 	}
 

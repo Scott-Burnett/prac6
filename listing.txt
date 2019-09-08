@@ -169,73 +169,74 @@
  166         UnaryExp < out unaryValue > (. if (unaryValue != 0) { value /= unaryValue; break; } .)
  167                                     (. else { SemErr("Attempted to divide by zero"); value = 0; break; } .)
  168     (. case "%": .)
- 169         UnaryExp < out unaryValue > (. value %= unaryValue; break; .)
- 170     (. } .)
- 171   } .
- 172 
- 173   UnaryExp < out int value >
- 174   (. value = 0; .)
- 175   =   Factor < out value >
- 176     | "+" UnaryExp < out value > (. value = + value; .)
- 177     | "-" UnaryExp < out value > (. value = - value; .)
- 178     | "!" UnaryExp < out value > (. value = (value != 0) ? 1 : 0; .)
- 179   .
- 180 
- 181   Factor < out int value >
- 182   (. value = 0; .)
- 183   =
- 184     Variable < out value >
- 185     | Number < out value > 
- 186     | "true" (. value = 1; .)
- 187     | "false" (. value = 0; .)
- 188     | "(" Expression < out value >
- 189       ")"
- 190   .
- 191 
- 192   Variable < out int value >
- 193   =
- 194   identifier
- 195   (. value = Table.valueOf(token.val); .)
- 196   .
- 197 
- 198   Number < out int value >
- 199   =
- 200   number
- 201   (. value = Convert.ToInt32(token.val); .)
- 202   .
- 203 
- 204   MulOp < out string kind >
- 205   (. kind = ""; .)
- 206   =
- 207       "*" (. kind = "*"; .)
- 208     | "/" (. kind = "/"; .)
- 209     | "%" (. kind = "%"; .)
- 210     .
- 211 
- 212   AddOp < out string kind >
- 213     (. kind = ""; .)
- 214   =
- 215       "+" (. kind = "+"; .)
- 216     | "-" (. kind = "-"; .)
- 217   .
- 218 
- 219   RelOp < out string kind >
- 220   (. kind = ""; .)
- 221   =
- 222       "<" (. kind = "<"; .)
- 223     | "<=" (. kind = "<="; .)
- 224     | ">" (. kind = ">"; .)
- 225     | ">=" (. kind = ">="; .)
- 226   .
- 227 
- 228   EqlOp < out string kind >
- 229   (. kind = ""; .)
- 230   =
- 231       "==" (. kind = "=="; .)
- 232     | "!=" (. kind = "!="; .)
- 233   .
- 234 
- 235 END Calc.
+ 169         UnaryExp < out unaryValue > (. if (unaryValue != 0) { value %= unaryValue; break; } .)
+ 170                                     (. else { SemErr("Attempted to divide by zero"); value = 0; break; } .)
+ 171     (. } .)
+ 172   } .
+ 173 
+ 174   UnaryExp < out int value >
+ 175   (. value = 0; .)
+ 176   =   Factor < out value >
+ 177     | "+" UnaryExp < out value > (. value = + value; .)
+ 178     | "-" UnaryExp < out value > (. value = - value; .)
+ 179     | "!" UnaryExp < out value > (. value = (value == 0) ? 1 : 0; .)
+ 180   .
+ 181 
+ 182   Factor < out int value >
+ 183   (. value = 0; .)
+ 184   =
+ 185     Variable < out value >
+ 186     | Number < out value > 
+ 187     | "true" (. value = 1; .)
+ 188     | "false" (. value = 0; .)
+ 189     | "(" Expression < out value >
+ 190       ")"
+ 191   .
+ 192 
+ 193   Variable < out int value >
+ 194   =
+ 195   identifier
+ 196   (. value = Table.valueOf(token.val); .)
+ 197   .
+ 198 
+ 199   Number < out int value >
+ 200   =
+ 201   number
+ 202   (. value = Convert.ToInt32(token.val); .)
+ 203   .
+ 204 
+ 205   MulOp < out string kind >
+ 206   (. kind = ""; .)
+ 207   =
+ 208       "*" (. kind = "*"; .)
+ 209     | "/" (. kind = "/"; .)
+ 210     | "%" (. kind = "%"; .)
+ 211     .
+ 212 
+ 213   AddOp < out string kind >
+ 214     (. kind = ""; .)
+ 215   =
+ 216       "+" (. kind = "+"; .)
+ 217     | "-" (. kind = "-"; .)
+ 218   .
+ 219 
+ 220   RelOp < out string kind >
+ 221   (. kind = ""; .)
+ 222   =
+ 223       "<" (. kind = "<"; .)
+ 224     | "<=" (. kind = "<="; .)
+ 225     | ">" (. kind = ">"; .)
+ 226     | ">=" (. kind = ">="; .)
+ 227   .
+ 228 
+ 229   EqlOp < out string kind >
+ 230   (. kind = ""; .)
+ 231   =
+ 232       "==" (. kind = "=="; .)
+ 233     | "!=" (. kind = "!="; .)
+ 234   .
+ 235 
+ 236 END Calc.
 
 0 errors detected
 2 warnings detected

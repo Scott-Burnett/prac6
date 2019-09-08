@@ -330,16 +330,16 @@ static Table table = new Table();
 			case "/":
 			UnaryExp(out unaryValue);
 			if (unaryValue != 0) { value /= unaryValue; break; }
-			else SemErr("Attempted to divide by zero"); value = 0; break; }
+			else { SemErr("Attempted to divide by zero"); value = 0; break; }
 			case "%":
 			UnaryExp(out unaryValue);
-			value %= unaryValue; break;
+			if (unaryValue != 0) { value %= unaryValue; break; }
+			else { SemErr("Attempted to divide by zero"); value = 0; break; }
 			}
 		}
 	}
 
 	static void AddOp(out string kind) {
-		kind = "";
 		if (la.kind == plus_Sym) {
 			Get();
 			kind = "+";
