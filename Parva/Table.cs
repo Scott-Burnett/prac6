@@ -96,11 +96,20 @@ boolType = 6;
 
     public static void declare (string name, int kind, int type, int lineRef, int value) {
         if (indexOf(name) != -1) { 
-            Console.WriteLine("Error: identifier " + name + " already exists");
+            Console.WriteLine("Error: Identifier " + name + " already exists");
             break;
         }
         entryList.Add(new Entry(name, kind, type, lineRef, value));
     }
+
+    public static void AddRef(string name, int lineRef) {
+    // Enters name if not already there, and then adds another line reference (negative
+    // if at a declaration point in the original source program)
+        if (indexOf(name) == -1) 
+            Console.WriteLine("Error: Identifier " + name + "does not exist");
+        else
+            entryList[pos].refs.Add(lineRef);
+    } // Table.AddRef
 
     public static void AddRef(string name, bool declared, int lineRef) {
     // Enters name if not already there, and then adds another line reference (negative

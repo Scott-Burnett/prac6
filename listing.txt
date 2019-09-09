@@ -66,15 +66,14 @@
   65   OneConst          = Ident
   66                     (. string name = token.val; .)
   67                     (.int kind = constKind, value = 0, type = noType, lineRef = token.line; .)
-  68                     (. Table.AddRef(token.val, true, token.line); .)
-  69                     "="
-  70                     Constant < out value, out type >.
-  71                     (. Table.declare(name, kind, type, value); .)
-****                     ^ "END" expected
+  68                     "="
+  69                     Constant < out value, out type >
+  70                     (. Table.declare(name, kind, type, value); .)
+  71                     .
   72   Constant < out int value, out int type >
   73                     =
   74                     number (. value = Convert.ToInt32(token.val); type = intType; .)
-  75                     | charLit (. value = Convert.ToInt32(token.val); type = charType; .)
+  75                     | charLit (. value = Convert.ToInt32(token.val[1]); type = charType; .)
   76                     | "true" (. value = 1; type = boolType; .)
   77                     | "false" (. value = 0; type = boolType; .)
   78                     | "null" (. value = 0; type = noType; .)
@@ -172,6 +171,7 @@
  170   Term              = Factor { MulOp Factor } .
  171   Factor            = Designator  (. Table.AddRef(token.val, false, token.line); .)
  172                       | Constant
+****                         ^ attribute mismatch between declaration and use of this symbol
  173                       | "new" BasicType "[" Expression "]"
  174                       | "!" Factor | "(" Expression ")" .
  175   Type              = BasicType [ "[]" ] .

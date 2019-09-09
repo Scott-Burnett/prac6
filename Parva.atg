@@ -64,8 +64,7 @@ PRODUCTIONS
   ConstDeclarations = "const" OneConst { "," OneConst } ";" .
   OneConst          = Ident
                     (. string name = token.val; .)
-                    (.int kind = constKind, value = 0, type = noType, lineRef = token.line; .)
-                    (. Table.AddRef(token.val, true, token.line); .)
+                    (.int kind = constKind, type = noType, value = 0, lineRef = token.line; .)
                     "="
                     Constant < out value, out type >
                     (. Table.declare(name, kind, type, value); .)
@@ -73,7 +72,7 @@ PRODUCTIONS
   Constant < out int value, out int type >
                     =
                     number (. value = Convert.ToInt32(token.val); type = intType; .)
-                    | charLit (. value = Convert.ToInt32(token.val); type = charType; .)
+                    | charLit (. value = (int)token.val[1]; type = charType; .)
                     | "true" (. value = 1; type = boolType; .)
                     | "false" (. value = 0; type = boolType; .)
                     | "null" (. value = 0; type = noType; .)
@@ -89,8 +88,11 @@ PRODUCTIONS
    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
 
   OneVar            = Ident
-                    (. Table.AddRef(token.val, true, token.line); .)
-                    [ "=" Expression ] .
+                    (. string name = token.val; .)
+                    (. int kind = varKind, int type = noType, int value = 0, lineRef = token.line; .)
+                    [ "=" Expression < out value, out type > ] 
+                    (. Table.declare(name, kind, type, value); .)
+                    .
 
 /* One way of introducing the extended form of assignment statements might be to define
 
@@ -114,7 +116,8 @@ PRODUCTIONS
                         | "--"
                       ) ";" .
 
-  Designator        = Ident                    
+  Designator < out string name, out int type >
+                    = Ident (. name = token.val; type = Table.typeOf(name); .)
                     [ "[" Expression "]" ] .
 
 /* The if-then-elsif-else construction is most easily described as follows. Although
@@ -160,21 +163,33 @@ PRODUCTIONS
                     ( "++" | "--" | ( "=" | CompoundAssignOp ) Expression ) .
 
   ReadStatement     = "read" "(" ReadElement { "," ReadElement } ")" ";" .
+
   ReadElement       = stringLit 
                       | Designator 
                       (. Table.AddRef(token.val, true, token.line); .) .
+
   WriteStatement    = "write" "(" WriteElement { "," WriteElement } ")" ";" .
+
   WriteElement      = stringLit | Expression .
+
   Condition         = Expression .
-  Expression        = AddExp [ RelOp AddExp ] .
+
+  Expression < out int value, out int type >
+                    = AddExp [ RelOp AddExp ] .
+
   AddExp            = [ "+" | "-" ] Term { AddOp Term } .
+
   Term              = Factor { MulOp Factor } .
+
   Factor            = Designator  (. Table.AddRef(token.val, false, token.line); .)
                       | Constant
                       | "new" BasicType "[" Expression "]"
                       | "!" Factor | "(" Expression ")" .
+
   Type              = BasicType [ "[]" ] .
+
   BasicType         = "int" | "bool" .
+
   AddOp             = "+" | "-" | "||" .
 
 /* The % operator is easily added to the set of MulOps */
