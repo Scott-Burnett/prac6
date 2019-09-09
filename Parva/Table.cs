@@ -102,8 +102,21 @@ boolType = 6;
         entryList.Add(new Entry(name, kind, type, lineRef, value));
     }
 
+	public static bool isCompatible (string first, string second) {
+		int pos1 = indexOf(first), pos2 = indexOf(second);
+		if (pos1 == -1) Console.WriteLine("Error: identifier " + first + "does not exist"); return false;
+		if (pos2 == -1) Console.WriteLine("Error: identifier " + first + "does not exist"); return false;
+		return (entryList[pos1].type == entryList[pos2].type);
+	}
+	
+	public static bool isCompatible(strig name, int type) {
+		int pos = indexOf(name);
+		if (pos == -1) Console.WriteLine("Error: identifier " + first + "does not exist"); return false;
+		return entryList[pos].type == type;
+	}
+
     public static void AddRef(string name, int lineRef) {
-    // Enters name if not already there, and then adds another line reference (negative
+    // adds a line entry at string name. Reports error if not defined.
     // if at a declaration point in the original source program)
         if (indexOf(name) == -1) 
             Console.WriteLine("Error: Identifier " + name + "does not exist");
@@ -127,6 +140,13 @@ boolType = 6;
             entryList[pos].refs.Add(lineRef);
         }
     } // Table.AddRef
+	
+	public static void setVal(string name, int value) {
+	//set value of entry mathing string name. Report error if none exists 
+         int pos = indexOf(name);
+		 if (pos == -1) Console.WriteLine("error : identifier " + name + " does not exist");
+		 else entryList[pos].value = value;
+	}
 
     public static void PrintTable() {
     // Prints out all references in the table (eliminate duplicates line numbers)

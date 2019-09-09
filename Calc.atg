@@ -28,7 +28,7 @@ class Table {
         if (pos == -1) return 0;
         else return variables[pos]._value;
     }
-    public static void set (string name, int value) {
+    public static void setValue (string name, int value) {
         int pos = indexOf(name);
         if (pos == -1)
             variables.Add(new Entry(name, value));
@@ -69,12 +69,11 @@ PRODUCTIONS
 
   Assignment
   =
-  (. int value, initValue; .)
-  (. string name = token.val; .)
-  Variable < out initValue >
+  (. int value; .)
+  Variable < out value > (. string name = token.val; .)
   "="
   Expression < out value >
-  (. Table.set(name, value); .)
+  (. Table.setValue(name, value); .)
   SYNC ";"
   .
 
@@ -83,11 +82,11 @@ PRODUCTIONS
   "print"
   (. int value; .)
   Expression < out value >
-  (. Console.WriteLine(value); .)
+  (. Console.Write(value); .)
   { WEAK ","
     Expression < out value >
-    (. Console.WriteLine(value); .)
-  }
+    (. Console.Write("," + value); .)
+  } (. Console.WriteLine(""); .)
   SYNC ";"
   .
 

@@ -52,7 +52,7 @@
   51 
   52   Statement         =    Block
   53                        | ConstDeclarations | VarDeclarations
-  54                        | Assignments
+  54                        | Assignments 
   55                        | IfStatement       | WhileStatement
   56                        | ReturnStatement   | HaltStatement
   57                        | ReadStatement     | WriteStatement
@@ -65,127 +65,374 @@
   64   ConstDeclarations = "const" OneConst { "," OneConst } ";" .
   65   OneConst          = Ident
   66                     (. string name = token.val; .)
-  67                     (.int kind = constKind, value = 0, type = noType, lineRef = token.line; .)
+  67                     (. int kind = constKind, type = noType, value = 0, lineRef = token.line; .)
   68                     "="
   69                     Constant < out value, out type >
   70                     (. Table.declare(name, kind, type, value); .)
   71                     .
-  72   Constant < out int value, out int type >
-  73                     =
-  74                     number (. value = Convert.ToInt32(token.val); type = intType; .)
-  75                     | charLit (. value = Convert.ToInt32(token.val[1]); type = charType; .)
-  76                     | "true" (. value = 1; type = boolType; .)
-  77                     | "false" (. value = 0; type = boolType; .)
-  78                     | "null" (. value = 0; type = noType; .)
-  79                     .
-  80   VarDeclarations   = Type OneVar { "," OneVar } ";" .
-  81 
-  82 /* We can introduce the extra form of asssignment operators as tokens as follows.  Note
-  83    theta we do not want to use, say "+" "=" because they cannot contain spaces. */
-  84 
-  85   CompoundAssignOp  = "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" .
+  72 					
+  73   Constant < out int value, out int type >
+  74                     =
+  75                     number (. value = Convert.ToInt32(token.val); type = intType; .)
+  76                     | charLit (. value = (int)token.val[1]; type = charType; .)
+  77                     | "true" (. value = 1; type = boolType; .)
+  78                     | "false" (. value = 0; type = boolType; .)
+  79                     | "null" (. value = 0; type = noType; .)
+  80                     .
+  81 					
+  82   VarDeclarations   =
+  83                     (. int type = 0; .)  
+  84                     Type < out type >
+  85                     OneVar < type > { "," OneVar < type > } ";" .
   86 
-  87 /* Don't be tempted to use the CompoundAssignOp in the declaration of OneVar or OneConst.
-  88    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
+  87 /* We can introduce the extra form of asssignment operators as tokens as follows.  Note
+  88    theta we do not want to use, say "+" "=" because they cannot contain spaces. */
   89 
-  90   OneVar            = Ident
-  91                     (. Table.AddRef(token.val, true, token.line); .)
-  92                     [ "=" Expression ] .
-  93 
-  94 /* One way of introducing the extended form of assignment statements might be to define
-  95 
-  96   Assignments = Designator { "," Designator } ( "=" | CompoundAssignOp )
-  97                 Expression { "," Expression } .
-  98 
-  99 */
+  90   CompoundAssignOp < out string op >
+  91 					= 
+  92 					"+=" (. op = "+="; .)
+  93 					| "-=" (. op = "-="; .) 
+  94 					| "*=" (. op = "*="; .)
+  95 					| "/=" (. op = "/="; .)
+  96 					| "%=" (. op = "%="; .)
+  97 					| "&=" (. op = "&="; .)
+  98 					| "|=" (. op = "|="; .)
+  99 					.
  100 
- 101 /* However, we might wish to limit the form with multiple Designators and Expressions to
- 102    use only the simple = operator, for ease of code generation as we may see later.
+ 101 /* Don't be tempted to use the CompoundAssignOp in the declaration of OneVar or OneConst.
+ 102    It cannot have a proper semantic meaning if you do.  All you can use is "=" */
  103 
- 104    If this is the case, to keep thing LL(1) compliant, the extra forms of assignment
- 105    statement familiar from Python, and the compound assignments familiar from C and C# are
- 106    best handled as below.  THis affords a nice example of factoring a grammar to avoid
- 107    LL(1) conflicts by delaying the awkward component for a while */
- 108 
- 109   Assignments       = Designator
- 110                       (   CompoundAssignOp Expression
- 111                         | { "," Designator } "=" Expression { "," Expression }
- 112                         | "++"
- 113                         | "--"
- 114                       ) ";" .
+ 104   OneVar < int type > 
+ 105                     =
+ 106                     Ident
+ 107                     (. string name = token.val; .)
+ 108                     (. int kind = varKind, int value = 0, lineRef = token.line, exprType = noType; .)
+ 109   					[ "=" Expression < out value, out exprType > ] 
+ 110                     (. if (exprType != type) Console.WriteLine("error : type mismatch between declaration and expression"); .)
+ 111 					(. else Table.declare(name, kind, type, value); .)
+ 112                     .
+ 113 
+ 114 /* One way of introducing the extended form of assignment statements might be to define
  115 
- 116   Designator        = Ident                    
- 117                     [ "[" Expression "]" ] .
- 118 
- 119 /* The if-then-elsif-else construction is most easily described as follows. Although
- 120   this is not LL(1), this works admirably - it is simply the well-known dangling
- 121   else ambiguity, which the parser resolves by associating elsif and else clauses
- 122   with the most recent if */
- 123 
- 124   IfStatement       = "if" "(" Condition ")" Statement
- 125                       { "elsif" "(" Condition ")" Statement }
- 126                       [ "else" Statement ] .
- 127 
- 128   WhileStatement    = "while" "(" Condition ")" Statement .
+ 116   Assignments = Designator < out name, out type, out offSet > 
+ 117                 { "," Designator } ( "=" | CompoundAssignOp )
+ 118                 Expression { "," Expression } .
+ 119 
+ 120 */
+ 121 
+ 122 /* However, we might wish to limit the form with multiple Designators and Expressions to
+ 123    use only the simple = operator, for ease of code generation as we may see later.
+ 124 
+ 125    If this is the case, to keep thing LL(1) compliant, the extra forms of assignment
+ 126    statement familiar from Python, and the compound assignments familiar from C and C# are
+ 127    best handled as below.  THis affords a nice example of factoring a grammar to avoid
+ 128    LL(1) conflicts by delaying the awkward component for a while */
  129 
- 130 /* Remember that the DoWhile statement must end with a semicolon - easy to forget this!
- 131    Why don't we need a semicolon as a terminator for a WhileStatement or IfStatement? */
- 132 
- 133   DoWhileStatement  = "do"  Statement  "while" "(" Condition ")" ";" .
- 134 
- 135 /* Break and Continue statements are very simple.  They are really "context dependent" but we
- 136    cannot impose such restrictions in a context-free grammar.  And they also need their own
- 137    terminating semicolons, which tend to be forgotten. */
- 138 
- 139   BreakStatement    = "break"    ";" .
- 140   ContinueStatement = "continue" ";" .
- 141 
- 142   ReturnStatement   = "return"   ";" .
- 143   HaltStatement     = "halt"     ";" .
- 144 
- 145 /* a C# inspired ForStatement might look like this */
- 146 
- 147   ForStatement      = "for" "(" (. bool temp = false; .) 
- 148                         [ [ BasicType (. temp = true; .) ]
- 149                         Ident
- 150                         (. Table.AddRef(token.val, temp, token.line); .)
- 151                         "=" Expression ]
- 152                         ";"
- 153                         [ Condition ] ";"
- 154                         [ Step ]
- 155                       ")" Statement .
- 156 
- 157   Step              =  Ident
- 158                     (. Table.AddRef(token.val, false, token.line); .)
- 159                     ( "++" | "--" | ( "=" | CompoundAssignOp ) Expression ) .
- 160 
- 161   ReadStatement     = "read" "(" ReadElement { "," ReadElement } ")" ";" .
- 162   ReadElement       = stringLit 
- 163                       | Designator 
- 164                       (. Table.AddRef(token.val, true, token.line); .) .
- 165   WriteStatement    = "write" "(" WriteElement { "," WriteElement } ")" ";" .
- 166   WriteElement      = stringLit | Expression .
- 167   Condition         = Expression .
- 168   Expression        = AddExp [ RelOp AddExp ] .
- 169   AddExp            = [ "+" | "-" ] Term { AddOp Term } .
- 170   Term              = Factor { MulOp Factor } .
- 171   Factor            = Designator  (. Table.AddRef(token.val, false, token.line); .)
- 172                       | Constant
-****                         ^ attribute mismatch between declaration and use of this symbol
- 173                       | "new" BasicType "[" Expression "]"
- 174                       | "!" Factor | "(" Expression ")" .
- 175   Type              = BasicType [ "[]" ] .
- 176   BasicType         = "int" | "bool" .
- 177   AddOp             = "+" | "-" | "||" .
- 178 
- 179 /* The % operator is easily added to the set of MulOps */
+ 130   Assignments       = (. string name = ""; int type = noType, offSet = 0; .)
+ 131                     Designator < out name, out type, out offSet >
+ 132                       ( (. string op = ""; int exprType = noType, exprValue = 0 value = Table.valueOf(name); .)
+ 133 					    CompoundAssignOp < out op > 
+ 134 						Expression < out exprValue, out exprTpye >
+ 135 						(. switch(op) { .)
+ 136 						(.     case "+=" : .)
+ 137 						(.         if ( type == exprType ) value += exprValue; .)
+ 138                         (.         else Console.WriteLine("Error: type mismatch"); .)				
+ 139 						(.     case "-=" : .)
+ 140 						(.         if ( type == exprType ) value -= exprValue; .)
+ 141                         (.         else Console.WriteLine("Error: type mismatch"); .)
+ 142 						(.     case "*=" : .)
+ 143 						(.         if ( type == exprType ) value *= exprValue; .)
+ 144                         (.         else Console.WriteLine("Error: type mismatch"); .)
+ 145 						(.     case "/=" : .)
+ 146 						(.         if ( type == exprType ) .)
+ 147 						(.             if (exprValue == 0) Console.WriteLine("Error: Attempted to divide by zero"); .)
+ 148                         (.			   else value /= exprValue; .)
+ 149                         (.         else Console.WriteLine("Error: type mismatch"); .)
+ 150 						(.     case "%=" : .)
+ 151 						(.         if ( type == exprType ) .)
+ 152 						(.             if (exprValue == 0) Console.WriteLine("Error: Attempted to divide by zero"); .)
+ 153                         (.			   else value /= exprValue; .)
+ 154                         (.         else Console.WriteLine("Error: type mismatch"); .)
+ 155 						(.     case "&=" : .)
+ 156 						(.         if ( type == exprType ) value &= exprValue; .)
+ 157                         (.         else Console.WriteLine("Error: type mismatch"); .)
+ 158 						(.     case "|=" : .)
+ 159 						(.         if ( type == exprType ) value |= exprValue; .)
+ 160                         (.         else Console.WriteLine("Error: type mismatch"); .)
+ 161 						(. } .)
+ 162 						(. Table.setValue(name, value); .)
+ 163                         | { 
+ 164 						"," Designator < out name, out type, out offSet >
+ 165 						} 
+ 166 						"=" (. int exprType = noType; .)
+ 167 						Expression < out value, out exprType >  (. if (exprType != type) Console.WriteLine("error : type mismatch"); .)
+ 168                         (. if ((exprType != type) Console.WriteLine("error : type mismatch"); .)						
+ 169 						{ "," Expression < out value, out exprType >  (. offSet = value; .)
+ 170 						}
+ 171                         | "++" (. table.setValue(name, value + 1); .)
+ 172                         | "--" (. table.setValue(name, value - 1); .)
+ 173                       ) ";" .
+ 174 
+ 175   Designator < out string name, out int type, out int offSet >
+ 176                     = Ident (. name = token.val; type = Table.typeOf(name); .)
+ 177                     [ "[" 
+ 178 					Expression < out offSet, out type > (. if (type != intType) Console.WriteLine("error : invalid index type"); .)
+ 179 					"]" ] .
  180 
- 181   MulOp             = "*" | "/" | "&&" | "%" .
- 182 
- 183   RelOp             = "==" | "!=" | "<" | "<=" | ">" | ">=" .
- 184 
- 185   Ident             = identifier .
- 186 
- 187 END Parva.
+ 181 /* The if-then-elsif-else construction is most easily described as follows. Although
+ 182   this is not LL(1), this works admirably - it is simply the well-known dangling
+ 183   else ambiguity, which the parser resolves by associating elsif and else clauses
+ 184   with the most recent if */
+ 185 
+ 186   IfStatement       = "if" "(" Condition ")" Statement
+ 187                       { "elsif" "(" Condition ")" Statement }
+ 188                       [ "else" Statement ] .
+ 189 
+ 190   WhileStatement    = "while" "(" Condition ")" Statement .
+ 191 
+ 192 /* Remember that the DoWhile statement must end with a semicolon - easy to forget this!
+ 193    Why don't we need a semicolon as a terminator for a WhileStatement or IfStatement? */
+ 194 
+ 195   DoWhileStatement  = "do"  Statement  "while" "(" Condition ")" ";" .
+ 196 
+ 197 /* Break and Continue statements are very simple.  They are really "context dependent" but we
+ 198    cannot impose such restrictions in a context-free grammar.  And they also need their own
+ 199    terminating semicolons, which tend to be forgotten. */
+ 200 
+ 201   BreakStatement    = "break"    ";" .
+ 202   ContinueStatement = "continue" ";" .
+ 203 
+ 204   ReturnStatement   = "return"   ";" .
+ 205   HaltStatement     = "halt"     ";" .
+ 206 
+ 207 /* a C# inspired ForStatement might look like this */
+ 208 
+ 209   ForStatement      = 
+ 210 					"for" "(" (. bool temp = false; .) 
+ 211                     [ [ BasicType < out type > (. temp = true; .)
+ 212 				    ] 
+ 213                     Ident
+ 214                     (. Table.AddRef(token.val, temp, token.line); .)
+ 215 					(. int value = 0, type = noType; .)
+ 216 					(. string name = token.val; .)
+ 217                     "=" Expression < out value, out type > ]
+ 218                     ";" 
+ 219                     [ (. int conValue = 0; .)
+ 220 					Condition < out conValue >
+**** 					                         ^ attribute mismatch between declaration and use of this symbol
+ 221 					] ";"
+ 222                     [ Step ]
+ 223                     ")" Statement .
+ 224 
+ 225   Step              =  
+ 226                     Ident (. string name = token.val; .)
+ 227                     (. Table.AddRef(token.val, false, token.line); .)
+ 228 					(. string op = ""; int exprType = noType, exprValue = 0 value = Table.valueOf(name); .)
+ 229                     ( "++" (. Table.setValue(name, (value+1)); .)
+ 230 					| "--" (. Table.setValue(name, (value+1)); .)
+ 231 					| ( "=" (. op = "="; .)
+ 232 					| CompoundAssignOp < out op > 
+ 233 					) Expression < out exprValue, out exprTpye > 
+ 234 					(. switch(op) { .)
+ 235 				    (.     case "+=" : .)
+ 236 					(.         if ( type == exprType ) value += exprValue; .)
+ 237                     (.         else Console.WriteLine("Error: type mismatch"); .)				
+ 238 					(.     case "-=" : .)
+ 239 					(.         if ( type == exprType ) value -= exprValue; .)
+ 240                     (.         else Console.WriteLine("Error: type mismatch"); .)
+ 241 					(.     case "*=" : .)
+ 242 					(.         if ( type == exprType ) value *= exprValue; .)
+ 243                     (.         else Console.WriteLine("Error: type mismatch"); .)
+ 244 					(.     case "/=" : .)
+ 245 					(.         if ( type == exprType ) .)
+ 246 					(.             if (exprValue == 0) Console.WriteLine("Error: Attempted to divide by zero"); .)
+ 247                     (.			   else value /= exprValue; .)
+ 248                     (.         else Console.WriteLine("Error: type mismatch"); .)
+ 249 					(.     case "%=" : .)
+ 250 					(.         if ( type == exprType ) .)
+ 251 					(.             if (exprValue == 0) Console.WriteLine("Error: Attempted to divide by zero"); .)
+ 252                     (.			   else value /= exprValue; .)
+ 253                     (.         else Console.WriteLine("Error: type mismatch"); .)
+ 254 					(.     case "&=" : .)
+ 255 					(.         if ( type == exprType ) value &= exprValue; .)
+ 256                     (.         else Console.WriteLine("Error: type mismatch"); .)
+ 257 					(.     case "|=" : .)
+ 258 					(.         if ( type == exprType ) value |= exprValue; .)
+ 259                     (.         else Console.WriteLine("Error: type mismatch"); .)
+ 260 					(.     case "=" : .)
+ 261 					(.         if ( type == exprType ) value = exprValue; .)
+ 262                     (.         else Console.WriteLine("Error: type mismatch"); .)
+ 263 					(. } .)
+ 264 					(. Table.setValue(name, value); .)
+ 265 					) .
+ 266 
+ 267   ReadStatement     = "read" "(" ReadElement { "," ReadElement } ")" ";" .
+ 268 
+ 269   ReadElement       = stringLit 
+ 270                       | (. string name = ""; int type = noType, offSet = 0; .)
+ 271 					  Designator < out name, out type, out offSet >
+ 272                       (. Table.AddRef(token.val, true, token.line); .) .
+ 273 
+ 274   WriteStatement    = "write" "(" WriteElement { "," WriteElement } ")" ";" .
+ 275 
+ 276   WriteElement      = stringLit | Expression < out value, out type > .
+ 277 
+ 278   Condition < out int value >        = (. int type = noType; .)
+****                             ^ attribute mismatch between declaration and use of this symbol
+ 279                                      Expression < out value, out type > 
+ 280 									 (. if (type != boolType) Console.WriteLine("error : condition must be of type bool"); .)
+ 281 									 .
+ 282 
+ 283   Expression < out int value, out int type >
+ 284                     = 
+ 285 					(. type = intType; .)
+ 286 					AddExp < out value, out type >
+ 287 					[
+ 288 					(. string op = ""; int addValue = 0, addType; .)
+ 289 					RelOp < out op > 
+ 290 					AddExp < out addValue, out addType >
+ 291 					(. switch(op) { .)
+ 292 					(. case "==": .)
+ 293 					(.     if (type == addTpe) value = (vale == addValue) ? 1 : 0; .)
+ 294 					(.     else Console.WriteLine("Error: type mismatch"); .)
+ 295 					(.     break; .)
+ 296 					(. case "!=": .)
+ 297 					(.     if (type == addTpe) value = (vale != addValue) ? 1 : 0; .)
+ 298 					(.     else Console.WriteLine("Error: type mismatch"); .)
+ 299 					(.     break; .)
+ 300 					(. case "<": .)
+ 301 					(.     if (type == addTpe) value = (vale < addValue) ? 1 : 0; .)
+ 302 					(.     else Console.WriteLine("Error: type mismatch"); .)
+ 303 					(.     break; .)
+ 304 					(. case "<=": .)
+ 305 					(.     if (type == addTpe) value = (vale <= addValue) ? 1 : 0; .)
+ 306 					(.     else Console.WriteLine("Error: type mismatch"); .)
+ 307 					(.     break; .)
+ 308 					(. case ">": .)
+ 309 					(.     if (type == addTpe) value = (vale > addValue) ? 1 : 0; .)
+ 310 					(.     else Console.WriteLine("Error: type mismatch"); .)
+ 311 					(.     break; .)
+ 312 					(. case ">=": .)
+ 313 					(.     if (type == addTpe) value = (vale >= addValue) ? 1 : 0; .)
+ 314 					(.     else Console.WriteLine("Error: type mismatch"); .)
+ 315 					(.     break; .)
+ 316 					(. } .)
+ 317 					(. type = boolType; .)
+ 318 					] .
+ 319 
+ 320   AddExp < out int value, out int type >
+ 321 					= 
+ 322 					(. bool hasUnaryOp = false; .)
+ 323 					[     		
+ 324 					"+" (. hasUnaryOp = true; .)
+ 325 					| "-" (. hasUnaryOp = true; .)
+ 326 					] 
+ 327 					Term < out value, out type >
+ 328 					(. if (hasUnaryOp) .)
+ 329 					(.	 if (type != intType) Console.WriteLine("Error: Can only apply this operator to type int"); .)
+ 330 					{
+ 331 					(. string op = ""; int termValue = 0, termType = intType; .)
+ 332 					AddOp < out op > 
+ 333 					Term < out termValue, out termType >
+ 334 					(. switch(op) { .)
+ 335 					(. case "+": .)
+ 336 					(.     if ( type == termType ) value += termValue; .)
+ 337                     (.     else Console.WriteLine("Error: Type mismatch"); .)	
+ 338                     (. break; .)
+ 339 					(. case "-": .)
+ 340 					(.     if ( type == termType ) value += termValue; .)
+ 341                     (.     else Console.WriteLine("Error: Type mismatch"); .)	
+ 342                     (. break; .)
+ 343 					(. case "||": .)
+ 344 					(.     if ( type == termType ) value += termValue; .)
+ 345                     (.     else Console.WriteLine("Error: Type mismatch"); .)	
+ 346                     (. break; .)
+ 347 					(. } .)
+ 348 					} .
+ 349 
+ 350   Term < out int value, out int type >
+ 351                     = Factor < out value, out type > 
+ 352 					{
+ 353 					(. string op = ""; int mulValue = 0, mulType = intType;
+ 354 					MulOp < out op >
+ 355 					Factor < out mulValue, out mulType >
+ 356 					(. switch(op) {
+**** 					^ missing end of previous semantic action
+ 357 					(. case "*": .)
+**** 					^ missing end of previous semantic action
+ 358 					(.     if ( type == mulType ) value *= mulValue; .)
+ 359                     (.     else Console.WriteLine("Error: Type mismatch"); .)	
+ 360                     (. break; .)
+ 361 					(. case "/": .)
+ 362 					(.     if ( type == mulType ) value += mulValue; .)
+ 363                     (.     else Console.WriteLine("Error: Type mismatch"); .)	
+ 364                     (. break; .)
+ 365 					(. case "%": .)
+ 366 					(.     if ( type == mulType ) value += mulValue; .)
+ 367                     (.     else Console.WriteLine("Error: Type mismatch"); .)	
+ 368                     (. break; .)
+ 369 					(. case "&&": .)
+ 370 					(.     type = boolType; .)
+ 371 					(.     if ( type == mulType ) value = (value != 0 && mulValue ! = 0) ? 1 : 0; .)
+ 372                     (.     else Console.WriteLine("Error: Type mismatch"); .)
+ 373 					(. break; .)
+ 374 					(. } .)
+ 375 					} .
+ 376 
+ 377   Factor < out int Value, out int Type >  
+ 378                     = Designator < out name, out type, out offSet > (. Table.AddRef(token.val, token.line); .)
+ 379                     | Constant < out value, out type >
+ 380                     | "new" BasicType < out type >       
+ 381 					"[" (. type++; int eperType = noType; .) 
+ 382 					Expression < out offSet, out eperType > (. if (eperType != intType) Console.WriteLine("error : array subscript must be of type int"); .)
+ 383 				    "]"
+ 384                     | "!" Factor < out Value, out Type > (. if (type != boolType) Console.WriteLine("error : expression must be of type bool"); .)
+ 385 					                                     (. else value = (value == 0) ? 1 : 0; .)
+ 386 					| "(" Expression < out value, out type > 
+ 387 					")" .
+ 388 
+ 389   Type < out int type >
+ 390                     = 
+ 391 					BasicType < out type > [ 
+ 392 					"[]" (. type++; .)
+ 393 					] 
+ 394 					.
+ 395 
+ 396   BasicType < out int type >
+ 397                     = (. type = noType; .)
+ 398 					"int" (. type = intType; .)
+ 399 					| "bool" (. type = boolType; .)
+ 400 					.
+ 401 
+ 402   AddOp < out string op >
+ 403                     = 
+ 404 					"+" (. op = "+"; .)
+ 405 					| "-" (. op = "-"; .)
+ 406 					| "||" (. op = "||"; .)
+ 407 					.
+ 408 
+ 409 /* The % operator is easily added to the set of MulOps */
+ 410 
+ 411   MulOp < out string op >            
+ 412                     = 
+ 413 					"*" (. op = "*"; .)
+ 414 					| "/" (. op = "/"; .)
+ 415 					| "&&" (. op = "&&"; .)
+ 416 					| "%" (. op = "%"; .)
+ 417 					.
+ 418 
+ 419   RelOp < out string op >           
+ 420                     = 
+ 421 					"==" (. op = "=="; .)
+ 422 					| "!=" (. op = "!="; .)
+ 423 					| "<" (. op = "<"; .)
+ 424 					| "<=" (. op = "<="; .)
+ 425 					| ">" (. op = ">"; .)
+ 426 					| ">=" (. op = ">="; .)
+ 427 					.
+ 428 
+ 429   Ident             = identifier .
+ 430 
+ 431 END Parva.
 
-1 errors detected
+4 errors detected
